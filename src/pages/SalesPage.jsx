@@ -2,24 +2,37 @@ import React, { useState } from 'react';
 import { useLiveQuery } from 'dexie-react-hooks';
 import { db } from '../db/db';
 import { useVendas } from '../hooks/useVendas';
-import { CreditCard, Banknote, History, LogOut, TrendingUp, DollarSign } from 'lucide-react';
+import { CreditCard, Banknote, History, LogOut, TrendingUp, DollarSign, PieChart, Share2, CheckCircle2 } from 'lucide-react';
 
-export default function SalesPage({ onShowHistory }) {
+export default function SalesPage({ onShowHistory, onShowDashboard }) {
   const { stats, registrarVenda, encerrarDia } = useVendas();
   const produtos = useLiveQuery(() => db.produtos.toArray());
   const [selectedProduct, setSelectedProduct] = useState(null);
   const [quantidade, setQuantidade] = useState(1);
+  const [lastSale, setLastSale] = useState(null);
 
   const handleProductClick = (produto) => {
     setSelectedProduct(produto);
     setQuantidade(1);
+    setLastSale(null);
   };
 
   const handlePayment = async (forma) => {
     if (selectedProduct) {
       await registrarVenda(selectedProduct, forma, quantidade);
+      setLastSale({
+        nome: selectedProduct.nome,
+        total: selectedProduct.preco * quantidade,
+        quantidade,
+        forma
+      });
       setSelectedProduct(null);
     }
+  };
+
+  const shareReceipt = () => {
+    const text = `🧾 *CONTA FEIRA* \n--------------------------\n*Produto:* ${lastSale.nome}\n*Qtd:* ${lastSale.quantidade}\n*Total:* R$ ${lastSale.total.toFixed(2)}\n*Pagamento:* ${lastSale.forma.toUpperCase()}\n--------------------------\nObrigado pela preferência! 🍎`;
+    window.open(`https://api.whatsapp.com/send?text=${encodeURIComponent(text)}`);
   };
 
   const handleEncerrar = async () => {
@@ -41,12 +54,21 @@ export default function SalesPage({ onShowHistory }) {
             <p className="text-white/80 text-[10px] font-black uppercase tracking-[0.3em]">Balanço do Dia</p>
             <h2 className="text-4xl font-black mt-1 drop-shadow-sm">{formatCurrency(stats.total)}</h2>
           </div>
-          <button 
-            onClick={onShowHistory}
-            className="p-3 bg-black/10 hover:bg-black/20 active:scale-90 rounded-2xl transition-all border border-white/20 backdrop-blur-sm"
-          >
-            <History size={24} />
-          </button>
+          <div className="flex gap-2">
+            <button 
+              onClick={onShowDashboard}
+              className="p-3 bg-black/10 hover:bg-black/20 active:scale-90 rounded-2xl transition-all border border-white/20 backdrop-blur-sm"
+              title="Dashboard"
+            >
+              <PieChart size={24} />
+            </button>
+            <button 
+              onClick={onShowHistory}
+              className="p-3 bg-black/10 hover:bg-black/20 active:scale-90 rounded-2xl transition-all border border-white/20 backdrop-blur-sm"
+            >
+              <History size={24} />
+            </button>
+          </div>
         </div>
         
         <div className="grid grid-cols-4 gap-1 pt-6 border-t border-white/20 mt-2">
@@ -71,7 +93,26 @@ export default function SalesPage({ onShowHistory }) {
 
       {/* Product List */}
       <div className="flex-1 overflow-y-auto p-6 space-y-5">
-        <div className="flex items-center justify-between px-2 mb-1">
+        {lastSale && (
+          <div className="bg-white p-5 rounded-[2.5rem] shadow-lg border border-[#4CAF50]/20 flex items-center justify-between fade-in bg-gradient-to-r from-white to-[#4CAF50]/5">
+            <div className="flex items-center gap-3">
+              <CheckCircle2 className="text-[#4CAF50]" size={28} />
+              <div>
+                <p className="text-[10px] font-black text-[#4CAF50] uppercase tracking-widest">Venda Realizada!</p>
+                <p className="font-bold text-gray-800">{lastSale.nome} ({formatCurrency(lastSale.total)})</p>
+              </div>
+            </div>
+            <button 
+              onClick={shareReceipt}
+              className="bg-[#4CAF50] text-white p-3 rounded-2xl shadow-lg shadow-[#4CAF50]/20 active:scale-90 transition-all flex items-center gap-2"
+            >
+              <Share2 size={20} />
+              <span className="text-[10px] font-black uppercase tracking-widest">Enviar</span>
+            </button>
+          </div>
+        )}
+
+        <div className="flex items-center justify-between px-2 mb-1 pt-2">
           <h3 className="text-[#4CAF50] font-black text-xs uppercase tracking-[0.2em]">Cardápio / Produtos</h3>
           <span className="w-12 h-1 bg-[#FF9800] rounded-full"></span>
         </div>
@@ -80,7 +121,7 @@ export default function SalesPage({ onShowHistory }) {
             <button
               key={p.id}
               onClick={() => handleProductClick(p)}
-              className="group flex flex-col justify-center bg-white p-6 rounded-[2.5rem] shadow-sm border border-gray-100 active:scale-[0.96] transition-all hover:border-[#4CAF50]/40 hover:shadow-lg min-h-[100px] relative overflow-hidden"
+              className="group flex flex-col justify-center bg-white p-6 rounded-[2.5rem] shadow-sm border border-gray-100 active:scale-[0.96] transition-all hover:border-[#4CAF50]/40 hover:shadow-lg min-h-[100px] relative overflow-hidden text-left"
             >
               <div className="absolute top-0 left-0 w-2 h-full bg-[#4CAF50] opacity-0 group-hover:opacity-100 transition-opacity"></div>
               <span className="text-xs font-bold text-gray-400 uppercase tracking-widest mb-1">{p.nome}</span>

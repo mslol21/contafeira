@@ -46,6 +46,13 @@ export function useVendas() {
       .filter(v => v.formaPagamento === 'cartao')
       .reduce((acc, v) => acc + v.valor, 0);
 
+    // Calculate total costs for the summary
+    const produtos = await db.produtos.toArray();
+    const totalCustos = vendasHoje.reduce((acc, v) => {
+      const prod = produtos.find(p => p.nome === v.nomeProduto);
+      return acc + ((prod?.custo || 0) * v.quantidade);
+    }, 0);
+
     const resumo = {
       id: uuidv4(),
       data: today,
@@ -53,17 +60,13 @@ export function useVendas() {
       totalPix,
       totalDinheiro,
       totalCartao,
+      totalCustos,
       quantidadeVendas: vendasHoje.length,
       user_id: user.id,
       synced: 0
     };
 
     await db.resumos.add(resumo);
-    // Mark sales as "archived" locally instead of deleting if we want to sync them later? 
-    // Actually, the requirement is "sync when internet". 
-    // If we delete here, they might not have synced yet.
-    // Let's mark them as archived? Or just wait for sync before delete?
-    // Better: keep them but with a flag.
     await db.vendas.where('data').equals(today).delete();
   };
 

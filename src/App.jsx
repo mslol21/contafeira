@@ -1,10 +1,9 @@
 import React, { useEffect, useState } from 'react';
 import { useConfig } from './hooks/useConfig';
 import ConfigPage from './pages/ConfigPage';
-import SalesPage from './pages/SalesPage';
-import HistoryPage from './pages/HistoryPage';
 import LoginPage from './pages/LoginPage';
 import PricingPage from './pages/PricingPage';
+import DashboardPage from './pages/DashboardPage';
 import { supabase } from './lib/supabase';
 import { useSync } from './hooks/useSync';
 
@@ -14,7 +13,7 @@ function App() {
   const [session, setSession] = useState(null);
   const [profile, setProfile] = useState(null);
   const [authLoading, setAuthLoading] = useState(true);
-  const [currentPage, setCurrentPage] = useState('sales');
+  const [currentPage, setCurrentPage] = useState('sales'); // 'sales', 'history', 'dashboard'
 
   const fetchProfile = async (userId) => {
     const { data, error } = await supabase
@@ -85,10 +84,18 @@ function App() {
           <span className="text-[10px] font-black text-[#4CAF50] uppercase tracking-widest">Sincronizando</span>
         </div>
       )}
-      {currentPage === 'sales' ? (
-        <SalesPage onShowHistory={() => setCurrentPage('history')} />
-      ) : (
+      
+      {currentPage === 'sales' && (
+        <SalesPage 
+          onShowHistory={() => setCurrentPage('history')} 
+          onShowDashboard={() => setCurrentPage('dashboard')}
+        />
+      )}
+      {currentPage === 'history' && (
         <HistoryPage onBack={() => setCurrentPage('sales')} />
+      )}
+      {currentPage === 'dashboard' && (
+        <DashboardPage onBack={() => setCurrentPage('sales')} />
       )}
     </div>
   );
