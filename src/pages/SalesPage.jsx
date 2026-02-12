@@ -2,7 +2,7 @@ import React, { useState } from 'react';
 import { useLiveQuery } from 'dexie-react-hooks';
 import { db } from '../db/db';
 import { useVendas } from '../hooks/useVendas';
-import { CreditCard, Banknote, History, LogOut, TrendingUp, DollarSign, PieChart, Share2, CheckCircle2 } from 'lucide-react';
+import { CreditCard, Banknote, History, LogOut, TrendingUp, DollarSign, PieChart, Share2, CheckCircle2, AlertTriangle, Layers } from 'lucide-react';
 
 export default function SalesPage({ onShowHistory, onShowDashboard }) {
   const { stats, registrarVenda, encerrarDia } = useVendas();
@@ -10,6 +10,9 @@ export default function SalesPage({ onShowHistory, onShowDashboard }) {
   const [selectedProduct, setSelectedProduct] = useState(null);
   const [quantidade, setQuantidade] = useState(1);
   const [lastSale, setLastSale] = useState(null);
+  const [filterCategory, setFilterCategory] = useState('Todas');
+
+  const categories = ['Todas', ...new Set(produtos?.map(p => p.categoria || 'Geral'))];
 
   const handleProductClick = (produto) => {
     setSelectedProduct(produto);
@@ -44,6 +47,10 @@ export default function SalesPage({ onShowHistory, onShowDashboard }) {
   const formatCurrency = (val) => {
     return val.toLocaleString('pt-BR', { style: 'currency', currency: 'BRL' });
   };
+
+  const filteredProducts = filterCategory === 'Todas' 
+    ? produtos 
+    : produtos?.filter(p => p.categoria === filterCategory);
 
   return (
     <div className="flex flex-col h-screen max-w-md mx-auto bg-[#FAFAFA] pb-safe font-['Outfit']">
@@ -91,6 +98,23 @@ export default function SalesPage({ onShowHistory, onShowDashboard }) {
         </div>
       </div>
 
+      {/* Category Filter */}
+      <div className="px-6 pt-6 overflow-x-auto whitespace-nowrap scrollbar-hide flex gap-2">
+        {categories.map(cat => (
+          <button
+            key={cat}
+            onClick={() => setFilterCategory(cat)}
+            className={`px-4 py-2 rounded-full text-[10px] font-black uppercase tracking-widest transition-all ${
+              filterCategory === cat 
+                ? 'bg-[#4CAF50] text-white shadow-lg shadow-[#4CAF50]/20' 
+                : 'bg-white text-gray-400 border border-gray-100'
+            }`}
+          >
+            {cat}
+          </button>
+        ))}
+      </div>
+
       {/* Product List */}
       <div className="flex-1 overflow-y-auto p-6 space-y-5">
         {lastSale && (
@@ -112,20 +136,32 @@ export default function SalesPage({ onShowHistory, onShowDashboard }) {
           </div>
         )}
 
-        <div className="flex items-center justify-between px-2 mb-1 pt-2">
-          <h3 className="text-[#4CAF50] font-black text-xs uppercase tracking-[0.2em]">Cardápio / Produtos</h3>
-          <span className="w-12 h-1 bg-[#FF9800] rounded-full"></span>
-        </div>
         <div className="grid grid-cols-1 gap-4 pb-8">
-          {produtos?.map((p) => (
+          {filteredProducts?.map((p) => (
             <button
               key={p.id}
               onClick={() => handleProductClick(p)}
               className="group flex flex-col justify-center bg-white p-6 rounded-[2.5rem] shadow-sm border border-gray-100 active:scale-[0.96] transition-all hover:border-[#4CAF50]/40 hover:shadow-lg min-h-[100px] relative overflow-hidden text-left"
             >
               <div className="absolute top-0 left-0 w-2 h-full bg-[#4CAF50] opacity-0 group-hover:opacity-100 transition-opacity"></div>
-              <span className="text-xs font-bold text-gray-400 uppercase tracking-widest mb-1">{p.nome}</span>
-              <span className="text-3xl font-black text-[#FF9800]">{formatCurrency(p.preco)}</span>
+              
+              <div className="flex justify-between items-start mb-1">
+                <span className="text-xs font-bold text-gray-400 uppercase tracking-widest">{p.nome}</span>
+                {p.estoque !== null && p.estoque <= 5 && (
+                  <div className="flex items-center gap-1 text-red-500 animate-pulse">
+                    <AlertTriangle size={14} />
+                    <span className="text-[9px] font-black uppercase tracking-widest">Estoque: {p.estoque}</span>
+                  </div>
+                )}
+                {p.estoque !== null && p.estoque > 5 && (
+                  <span className="text-[9px] font-black text-gray-300 uppercase tracking-widest">Estoque: {p.estoque}</span>
+                )}
+              </div>
+              
+              <div className="flex justify-between items-end">
+                <span className="text-3xl font-black text-[#FF9800]">{formatCurrency(p.preco)}</span>
+                <span className="text-[9px] font-black text-gray-300 uppercase tracking-widest bg-gray-50 px-2 py-1 rounded-md">{p.categoria || 'Geral'}</span>
+              </div>
             </button>
           ))}
         </div>

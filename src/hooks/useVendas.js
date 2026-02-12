@@ -14,20 +14,27 @@ export function useVendas() {
     const { data: { user } } = await supabase.auth.getUser();
     if (!user) return;
 
-    const now = new Date();
-    const valorTotal = produto.preco * parseInt(quantidade);
     const venda = {
       id: uuidv4(),
       nomeProduto: produto.nome,
-      valor: valorTotal,
-      quantidade: parseInt(quantidade),
+      valor: produto.preco * quantidade,
+      quantidade,
       formaPagamento,
       data: today,
-      hora: now.toLocaleTimeString('pt-BR', { hour: '2-digit', minute: '2-digit' }),
+      hora: new Date().toLocaleTimeString('pt-BR', { hour: '2-digit', minute: '2-digit' }),
       user_id: user.id,
       synced: 0
     };
+
     await db.vendas.add(venda);
+
+    // Decrement stock
+    const dbProd = await db.produtos.get(produto.id);
+    if (dbProd && dbProd.estoque !== null && !isNaN(dbProd.estoque)) {
+      await db.produtos.update(produto.id, { 
+        estoque: Math.max(0, dbProd.estoque - quantidade) 
+      });
+    }
   };
 
   const encerrarDia = async () => {

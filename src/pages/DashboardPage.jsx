@@ -1,11 +1,38 @@
 import React from 'react';
 import { useLiveQuery } from 'dexie-react-hooks';
 import { db } from '../db/db';
-import { ArrowLeft, TrendingUp, TrendingDown, DollarSign, Package, PieChart } from 'lucide-react';
+import { ArrowLeft, TrendingUp, TrendingDown, DollarSign, Package, PieChart, Download } from 'lucide-react';
 
 export default function DashboardPage({ onBack }) {
   const resumos = useLiveQuery(() => db.resumos.orderBy('data').reverse().toArray());
   const produtos = useLiveQuery(() => db.produtos.toArray());
+
+  const exportToCSV = () => {
+    if (!resumos || resumos.length === 0) return;
+    
+    const headers = ['Data', 'Total Receita', 'Total Custos', 'Lucro', 'Vendas Pix', 'Vendas Dinheiro', 'Vendas Cartão', 'Qtd Vendas'];
+    const rows = resumos.map(r => [
+      r.data,
+      r.total.toFixed(2),
+      (r.totalCustos || 0).toFixed(2),
+      (r.total - (r.totalCustos || 0)).toFixed(2),
+      r.totalPix.toFixed(2),
+      r.totalDinheiro.toFixed(2),
+      r.totalCartao.toFixed(2),
+      r.quantidadeVendas
+    ]);
+
+    const csvContent = [headers, ...rows].map(e => e.join(',')).join('\n');
+    const blob = new Blob([csvContent], { type: 'text/csv;charset=utf-8;' });
+    const link = document.createElement('a');
+    const url = URL.createObjectURL(blob);
+    link.setAttribute('href', url);
+    link.setAttribute('download', `relatorio_vendas_${new Date().toLocaleDateString()}.csv`);
+    link.style.visibility = 'hidden';
+    document.body.appendChild(link);
+    link.click();
+    document.body.removeChild(link);
+  };
 
   const formatCurrency = (val) => {
     return (val || 0).toLocaleString('pt-BR', { style: 'currency', currency: 'BRL' });
@@ -20,14 +47,24 @@ export default function DashboardPage({ onBack }) {
 
   return (
     <div className="flex flex-col h-screen max-w-md mx-auto bg-[#FAFAFA] font-['Outfit']">
-      <header className="bg-white p-6 border-b border-gray-100 flex items-center gap-4">
+      <header className="bg-white p-6 border-b border-gray-100 flex items-center justify-between">
+        <div className="flex items-center gap-4">
+          <button 
+            onClick={onBack}
+            className="p-3 border border-gray-100 rounded-2xl text-[#4CAF50] hover:bg-[#4CAF50]/5 active:scale-90 transition-all shadow-sm"
+          >
+            <ArrowLeft size={24} />
+          </button>
+          <h1 className="text-2xl font-black text-gray-800 tracking-tight">Análise Geral</h1>
+        </div>
         <button 
-          onClick={onBack}
-          className="p-3 border border-gray-100 rounded-2xl text-[#4CAF50] hover:bg-[#4CAF50]/5 active:scale-90 transition-all shadow-sm"
+          onClick={exportToCSV}
+          className="p-3 bg-gray-50 text-gray-600 rounded-2xl hover:bg-gray-100 active:scale-95 transition-all flex items-center gap-2"
+          title="Exportar CSV"
         >
-          <ArrowLeft size={24} />
+          <Download size={20} />
+          <span className="text-[10px] font-black uppercase tracking-widest hidden sm:inline">Exportar</span>
         </button>
-        <h1 className="text-2xl font-black text-gray-800 tracking-tight">Análise Geral</h1>
       </header>
 
       <div className="flex-1 overflow-y-auto p-6 space-y-6 pb-24">

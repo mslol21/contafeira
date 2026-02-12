@@ -2,8 +2,8 @@ import Dexie from 'dexie';
 
 export const db = new Dexie('ContaFeiraDB');
 
-db.version(4).stores({
-  produtos: 'id, nome, preco, custo, synced, user_id',
+db.version(5).stores({
+  produtos: 'id, nome, preco, custo, estoque, categoria, synced, user_id',
   vendas: 'id, nomeProduto, valor, quantidade, formaPagamento, data, hora, synced, user_id',
   resumos: 'id, data, total, totalPix, totalDinheiro, totalCartao, quantidadeVendas, totalCustos, synced, user_id',
   despesas: 'id, descricao, valor, categoria, data, synced, user_id',
