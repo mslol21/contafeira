@@ -145,7 +145,12 @@ export default function AdminPage({ onBack }) {
                     {user.plan === 'pro cloud' ? <Rocket size={28} /> : <Zap size={28} />}
                   </div>
                   <div>
-                    <h3 className="text-xs font-black text-gray-400 uppercase tracking-widest truncate max-w-[200px]">ID: {user.id}</h3>
+                    <h3 className="text-sm font-black text-gray-900 truncate max-w-[200px]">
+                      {user.email || 'Sem E-mail'}
+                    </h3>
+                    <p className="text-[10px] font-bold text-gray-400 uppercase tracking-widest truncate max-w-[200px] mb-1">
+                      ID: {user.id}
+                    </p>
                     <div className="flex items-center gap-2 mt-1">
                       <span className={`text-base font-black ${
                         user.plan === 'pro cloud' ? 'text-[#4CAF50]' : 'text-gray-900'
