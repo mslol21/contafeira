@@ -6,10 +6,12 @@ import HistoryPage from './pages/HistoryPage';
 import LoginPage from './pages/LoginPage';
 import PricingPage from './pages/PricingPage';
 import DashboardPage from './pages/DashboardPage';
+import AdminPage from './pages/AdminPage';
+import PixPayment from './components/PixPayment';
 import { supabase } from './lib/supabase';
 import { useSync } from './hooks/useSync';
 import { useOnlineStatus } from './hooks/useOnlineStatus';
-import { WifiOff } from 'lucide-react';
+import { WifiOff, Shield } from 'lucide-react';
 
 function App() {
   const { isConfigured, loading: configLoading } = useConfig();
@@ -18,7 +20,8 @@ function App() {
   const [session, setSession] = useState(null);
   const [profile, setProfile] = useState(null);
   const [authLoading, setAuthLoading] = useState(true);
-  const [currentPage, setCurrentPage] = useState('sales'); // 'sales', 'history', 'dashboard'
+  const [currentPage, setCurrentPage] = useState('sales'); // 'sales', 'history', 'dashboard', 'admin', 'pix'
+  const [selectedPlan, setSelectedPlan] = useState(null);
 
   const fetchProfile = async (userId) => {
     const { data, error } = await supabase
@@ -51,14 +54,27 @@ function App() {
   }, []);
 
   const handleSelectPlan = async (plan) => {
+    setSelectedPlan(plan);
+    setCurrentPage('pix');
+  };
+
+  const handleConfirmPix = async () => {
     const { data, error } = await supabase
       .from('profiles')
-      .insert([{ id: session.user.id, plan: plan.name.toLowerCase(), subscription_status: 'active' }])
+      .upsert([{ 
+        id: session.user.id, 
+        plan: selectedPlan.name.toLowerCase(), 
+        subscription_status: 'pending' 
+      }])
       .select()
       .single();
     
-    if (!error) setProfile(data);
-    else alert('Erro ao selecionar plano. Tente novamente.');
+    if (!error) {
+      setProfile(data);
+      setCurrentPage('sales');
+    } else {
+      alert('Erro ao processar transação. Tente novamente.');
+    }
   };
 
   if (authLoading || configLoading) {
@@ -74,7 +90,51 @@ function App() {
   }
 
   if (!profile) {
+    if (currentPage === 'pix' && selectedPlan) {
+      return (
+        <PixPayment 
+          plan={selectedPlan} 
+          onConfirm={handleConfirmPix}
+          onBack={() => setCurrentPage('sales')} 
+        />
+      );
+    }
     return <PricingPage onSelectPlan={handleSelectPlan} />;
+  }
+
+  // Se o pagamento estiver pendente, mostrar uma versão limitada ou aviso
+  if (profile.subscription_status === 'pending') {
+    return (
+      <div className="min-h-screen bg-[#FAFAFA] flex flex-col items-center justify-center p-8 text-center font-['Outfit']">
+        <div className="w-20 h-20 bg-orange-100 rounded-full flex items-center justify-center text-orange-500 mb-6 animate-pulse">
+          <Shield size={40} />
+        </div>
+        <h1 className="text-2xl font-black text-gray-900 mb-2">Pagamento em Análise</h1>
+        <p className="text-gray-500 font-medium mb-8 max-w-xs">
+          Já recebemos sua confirmação de pagamento via PIX. Nossa equipe está validando agora mesmo!
+        </p>
+        <button 
+          onClick={() => fetchProfile(session.user.id)}
+          className="w-full max-w-xs py-5 bg-[#4CAF50] text-white rounded-[2rem] font-black shadow-lg shadow-[#4CAF50]/20 active:scale-95 transition-all uppercase tracking-widest text-sm"
+        >
+          Atualizar Status
+        </button>
+        <button 
+          onClick={() => supabase.auth.signOut()}
+          className="mt-6 text-gray-400 font-bold uppercase tracking-widest text-[10px]"
+        >
+          Sair da Conta
+        </button>
+      </div>
+    );
+  }
+
+  if (profile.subscription_status === 'expired') {
+    return <PricingPage onSelectPlan={handleSelectPlan} />;
+  }
+
+  if (currentPage === 'admin' && (session.user.email === 'mslol21@gmail.com' || profile.role === 'admin')) {
+    return <AdminPage onBack={() => setCurrentPage('sales')} />;
   }
 
   if (!isConfigured) {
@@ -95,6 +155,16 @@ function App() {
           <div className="w-2 h-2 bg-[#4CAF50] rounded-full"></div>
           <span className="text-[10px] font-black text-[#4CAF50] uppercase tracking-widest">Sincronizando</span>
         </div>
+      )}
+
+      {(session.user.email === 'mslol21@gmail.com' || profile?.role === 'admin') && (
+        <button 
+          onClick={() => setCurrentPage('admin')}
+          className="fixed bottom-24 right-6 z-[100] bg-gray-900 text-white p-4 rounded-full shadow-2xl active:scale-90 transition-all border-4 border-white"
+          title="Painel Admin"
+        >
+          <Shield size={24} />
+        </button>
       )}
       
       {currentPage === 'sales' && (
