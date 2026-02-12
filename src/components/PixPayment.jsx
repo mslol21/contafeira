@@ -14,12 +14,16 @@ export default function PixPayment({ plan, onConfirm, onBack }) {
   const [copied, setCopied] = useState(false);
   const [loading, setLoading] = useState(false);
 
-  // Exemplo de chave PIX e payload (em um cenário real, isso viria de um backend/MercadoPago)
-  const pixKey = "financeiro@contafeira.com.br";
-  const pixPayload = "00020126580014BR.GOV.BCB.PIX0136financeiro@contafeira.com.br5204000053039865405" + (plan.price === '24,90' ? '24.90' : '9.90') + "5802BR5910CONTAFEIRA6009SAO PAULO62070503***6304E2B1";
+  // Chave PIX do Admin
+  const pixKey = "shitara.massami@gmail.com";
+  
+  // Como não temos um gerador de payload BR Code no front, vamos usar o próprio email
+  // Muitos bancos aceitam ler o QR Code contendo apenas a chave.
+  // Caso contrário, o usuário usa o Copia e Cola da chave.
+  const pixPayload = pixKey;
 
   const handleCopy = () => {
-    navigator.clipboard.writeText(pixPayload);
+    navigator.clipboard.writeText(pixKey);
     setCopied(true);
     setTimeout(() => setCopied(false), 2000);
   };
@@ -78,7 +82,7 @@ export default function PixPayment({ plan, onConfirm, onBack }) {
               {copied ? (
                 <><Check size={20} /> Copiado para Transferência</>
               ) : (
-                <><Copy size={20} /> Copiar Código PIX</>
+                <><Copy size={20} /> Copiar Chave PIX: {pixKey}</>
               )}
             </button>
           </div>
