@@ -44,6 +44,13 @@ export default function SalesPage({ onShowHistory, onShowDashboard }) {
     }
   };
 
+  const handleLogout = async () => {
+    if (confirm('Deseja sair da sua conta?')) {
+      await supabase.auth.signOut();
+      window.location.reload();
+    }
+  };
+
   const formatCurrency = (val) => {
     return val.toLocaleString('pt-BR', { style: 'currency', currency: 'BRL' });
   };
@@ -74,6 +81,13 @@ export default function SalesPage({ onShowHistory, onShowDashboard }) {
               className="p-3 bg-black/10 hover:bg-black/20 active:scale-90 rounded-2xl transition-all border border-white/20 backdrop-blur-sm"
             >
               <History size={24} />
+            </button>
+            <button 
+              onClick={handleLogout}
+              className="p-3 bg-red-500/20 hover:bg-red-500/40 active:scale-90 rounded-2xl transition-all border border-white/10 backdrop-blur-sm text-red-100"
+              title="Sair"
+            >
+              <LogOut size={24} />
             </button>
           </div>
         </div>
