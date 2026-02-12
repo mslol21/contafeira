@@ -98,22 +98,24 @@ export default function SalesPage({ onShowHistory, onShowDashboard }) {
         </div>
       </div>
 
-      {/* Category Filter */}
-      <div className="px-6 pt-6 overflow-x-auto whitespace-nowrap scrollbar-hide flex gap-2">
-        {categories.map(cat => (
-          <button
-            key={cat}
-            onClick={() => setFilterCategory(cat)}
-            className={`px-4 py-2 rounded-full text-[10px] font-black uppercase tracking-widest transition-all ${
-              filterCategory === cat 
-                ? 'bg-[#4CAF50] text-white shadow-lg shadow-[#4CAF50]/20' 
-                : 'bg-white text-gray-400 border border-gray-100'
-            }`}
-          >
-            {cat}
-          </button>
-        ))}
-      </div>
+      {/* Category Filter - Only shows if there are multiple categories */}
+      {categories.length > 2 && (
+        <div className="px-6 pt-6 overflow-x-auto whitespace-nowrap scrollbar-hide flex gap-2">
+          {categories.map(cat => (
+            <button
+              key={cat}
+              onClick={() => setFilterCategory(cat)}
+              className={`px-4 py-2 rounded-full text-[10px] font-black uppercase tracking-widest transition-all ${
+                filterCategory === cat 
+                  ? 'bg-[#4CAF50] text-white shadow-lg shadow-[#4CAF50]/20' 
+                  : 'bg-white text-gray-400 border border-gray-100'
+              }`}
+            >
+              {cat}
+            </button>
+          ))}
+        </div>
+      )}
 
       {/* Product List */}
       <div className="flex-1 overflow-y-auto p-6 space-y-5">
