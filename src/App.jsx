@@ -4,6 +4,7 @@ import ConfigPage from './pages/ConfigPage';
 import SalesPage from './pages/SalesPage';
 import HistoryPage from './pages/HistoryPage';
 import LoginPage from './pages/LoginPage';
+import PricingPage from './pages/PricingPage';
 import { supabase } from './lib/supabase';
 import { useSync } from './hooks/useSync';
 
@@ -11,23 +12,50 @@ function App() {
   const { isConfigured, loading: configLoading } = useConfig();
   const { isSyncing } = useSync();
   const [session, setSession] = useState(null);
+  const [profile, setProfile] = useState(null);
   const [authLoading, setAuthLoading] = useState(true);
   const [currentPage, setCurrentPage] = useState('sales');
 
+  const fetchProfile = async (userId) => {
+    const { data, error } = await supabase
+      .from('profiles')
+      .select('*')
+      .eq('id', userId)
+      .single();
+    
+    if (data) setProfile(data);
+    else if (error && error.code === 'PGRST116') {
+      // Perfil não existe, manter nulo para mostrar PricingPage
+      setProfile(null);
+    }
+  };
+
   useEffect(() => {
-    // Get initial session
     supabase.auth.getSession().then(({ data: { session } }) => {
       setSession(session);
+      if (session) fetchProfile(session.user.id);
       setAuthLoading(false);
     });
 
-    // Listen for auth changes
     const { data: { subscription } } = supabase.auth.onAuthStateChange((_event, session) => {
       setSession(session);
+      if (session) fetchProfile(session.user.id);
+      else setProfile(null);
     });
 
     return () => subscription.unsubscribe();
   }, []);
+
+  const handleSelectPlan = async (plan) => {
+    const { data, error } = await supabase
+      .from('profiles')
+      .insert([{ id: session.user.id, plan: plan.name.toLowerCase(), subscription_status: 'active' }])
+      .select()
+      .single();
+    
+    if (!error) setProfile(data);
+    else alert('Erro ao selecionar plano. Tente novamente.');
+  };
 
   if (authLoading || configLoading) {
     return (
@@ -39,6 +67,10 @@ function App() {
 
   if (!session) {
     return <LoginPage />;
+  }
+
+  if (!profile) {
+    return <PricingPage onSelectPlan={handleSelectPlan} />;
   }
 
   if (!isConfigured) {

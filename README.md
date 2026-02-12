@@ -109,6 +109,20 @@ create policy "Dono vê seus dados" on configuracao for all using (auth.uid() = 
 create policy "Dono vê seus dados" on produtos for all using (auth.uid() = user_id);
 create policy "Dono vê seus dados" on vendas for all using (auth.uid() = user_id);
 create policy "Dono vê seus dados" on resumos for all using (auth.uid() = user_id);
+
+-- 5. Tabela de Perfis (Planos)
+create table profiles (
+  id uuid references auth.users on delete cascade primary key,
+  plan text default 'none', -- 'essencial', 'profissional', 'master'
+  subscription_status text default 'active',
+  updated_at timestamp with time zone default now()
+);
+
+-- RLS para Perfis
+alter table profiles enable row level security;
+create policy "Usuário vê próprio perfil" on profiles for select using (auth.uid() = id);
+create policy "Usuário atualiza próprio perfil" on profiles for update using (auth.uid() = id);
+create policy "Usuário insere próprio perfil" on profiles for insert with check (auth.uid() = id);
 ```
 
 ## 🛡 Regras de Negócio
