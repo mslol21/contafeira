@@ -16,9 +16,15 @@ export default function LoginPage() {
 
     try {
       if (isSignUp) {
-        const { error } = await supabase.auth.signUp({ email, password });
+        const { data, error } = await supabase.auth.signUp({ email, password });
         if (error) throw error;
-        alert('Cadastro realizado! Verifique seu e-mail para confirmar a conta (ou tente entrar se a confirmação for automática).');
+        
+        if (data?.session) {
+          // Login automático (confirmação de email desativada)
+          // O App.jsx vai detectar a mudança de sessão
+        } else {
+          alert('Cadastro realizado! Verifique seu e-mail para confirmar a conta.');
+        }
       } else {
         const { error } = await supabase.auth.signInWithPassword({ email, password });
         if (error) throw error;
