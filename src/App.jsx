@@ -6,10 +6,13 @@ import PricingPage from './pages/PricingPage';
 import DashboardPage from './pages/DashboardPage';
 import { supabase } from './lib/supabase';
 import { useSync } from './hooks/useSync';
+import { useOnlineStatus } from './hooks/useOnlineStatus';
+import { WifiOff } from 'lucide-react';
 
 function App() {
   const { isConfigured, loading: configLoading } = useConfig();
   const { isSyncing } = useSync();
+  const isOnline = useOnlineStatus();
   const [session, setSession] = useState(null);
   const [profile, setProfile] = useState(null);
   const [authLoading, setAuthLoading] = useState(true);
@@ -78,7 +81,14 @@ function App() {
 
   return (
     <div className="min-h-screen bg-[#FAFAFA] relative">
-      {isSyncing && (
+      {!isOnline && (
+        <div className="fixed top-0 left-0 w-full z-[110] bg-orange-500 text-white py-2 px-4 flex items-center justify-center gap-2 text-[10px] font-black uppercase tracking-widest shadow-lg animate-in slide-in-from-top duration-300">
+          <WifiOff size={14} />
+          <span>Você está em Modo Offline - As vendas serão salvas localmente</span>
+        </div>
+      )}
+
+      {isSyncing && isOnline && (
         <div className="fixed top-4 right-4 z-[100] bg-white/80 backdrop-blur-md px-3 py-1.5 rounded-full shadow-lg border border-[#4CAF50]/20 flex items-center gap-2 animate-pulse">
           <div className="w-2 h-2 bg-[#4CAF50] rounded-full"></div>
           <span className="text-[10px] font-black text-[#4CAF50] uppercase tracking-widest">Sincronizando</span>
