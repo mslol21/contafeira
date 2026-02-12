@@ -24,6 +24,11 @@ export default function AdminPage({ onBack }) {
       .select('*')
       .order('created_at', { ascending: false });
     
+    if (error) {
+      console.error(error);
+      alert('Erro ao carregar usuários: ' + error.message + '\n\n' + 'Se o erro for "400", você precisa rodar o script SQL no Supabase! Veja o arquivo db_setup.sql no projeto.');
+    }
+    
     if (data) setUsers(data);
     setLoading(false);
   };
