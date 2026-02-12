@@ -133,7 +133,7 @@ function App() {
     return <PricingPage onSelectPlan={handleSelectPlan} />;
   }
 
-  if (currentPage === 'admin' && (session.user.email === 'mslol21@gmail.com' || profile.role === 'admin')) {
+  if (currentPage === 'admin' && (session.user.email === 'msjtec12@gmail.com' || profile.role === 'admin')) {
     return <AdminPage onBack={() => setCurrentPage('sales')} />;
   }
 
@@ -157,7 +157,7 @@ function App() {
         </div>
       )}
 
-      {(session.user.email === 'mslol21@gmail.com' || profile?.role === 'admin') && (
+      {(session.user.email === 'msjtec12@gmail.com' || profile?.role === 'admin') && (
         <button 
           onClick={() => setCurrentPage('admin')}
           className="fixed bottom-24 right-6 z-[100] bg-gray-900 text-white p-4 rounded-full shadow-2xl active:scale-90 transition-all border-4 border-white"
