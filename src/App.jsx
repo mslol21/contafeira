@@ -41,6 +41,12 @@ function App() {
     supabase.auth.getSession().then(({ data: { session } }) => {
       setSession(session);
       if (session) fetchProfile(session.user.id);
+      
+      // Se for admin, já seta a página inicial como admin
+      if (session?.user?.email === 'msjtec12@gmail.com') {
+        setCurrentPage('admin');
+      }
+
       setAuthLoading(false);
     });
 
@@ -87,6 +93,13 @@ function App() {
 
   if (!session) {
     return <LoginPage />;
+  }
+
+  // Admin Priority Check
+  if (session.user.email === 'msjtec12@gmail.com' || profile?.role === 'admin') {
+    if (currentPage === 'admin') {
+      return <AdminPage onBack={() => setCurrentPage('sales')} />;
+    }
   }
 
   if (!profile) {
