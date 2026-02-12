@@ -116,7 +116,10 @@ function App() {
   }
 
   // Se o pagamento estiver pendente, mostrar uma versão limitada ou aviso
-  if (profile.subscription_status === 'pending') {
+  // ADMIN BYPASS: Se for o admin, ignora status pendente
+  const isAdmin = session.user.email === 'msjtec12@gmail.com' || profile.role === 'admin';
+  
+  if (profile.subscription_status === 'pending' && !isAdmin) {
     return (
       <div className="min-h-screen bg-[#FAFAFA] flex flex-col items-center justify-center p-8 text-center font-['Outfit']">
         <div className="w-20 h-20 bg-orange-100 rounded-full flex items-center justify-center text-orange-500 mb-6 animate-pulse">
