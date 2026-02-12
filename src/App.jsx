@@ -1,6 +1,8 @@
 import React, { useEffect, useState } from 'react';
 import { useConfig } from './hooks/useConfig';
 import ConfigPage from './pages/ConfigPage';
+import SalesPage from './pages/SalesPage';
+import HistoryPage from './pages/HistoryPage';
 import LoginPage from './pages/LoginPage';
 import PricingPage from './pages/PricingPage';
 import DashboardPage from './pages/DashboardPage';
