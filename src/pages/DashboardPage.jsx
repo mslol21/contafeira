@@ -10,7 +10,7 @@ export default function DashboardPage({ onBack }) {
   const exportToCSV = () => {
     if (!resumos || resumos.length === 0) return;
     
-    const headers = ['Data', 'Total Receita', 'Total Custos', 'Lucro', 'Vendas Pix', 'Vendas Dinheiro', 'Vendas Cartão', 'Qtd Vendas'];
+    const headers = ['Data', 'Receita Bruta', 'Custos Producao', 'Lucro Liquido', 'Pix', 'Dinheiro', 'Cartao', 'Qtd Vendas'];
     const rows = resumos.map(r => [
       r.data,
       r.total.toFixed(2),
@@ -22,12 +22,15 @@ export default function DashboardPage({ onBack }) {
       r.quantidadeVendas
     ]);
 
-    const csvContent = [headers, ...rows].map(e => e.join(',')).join('\n');
-    const blob = new Blob([csvContent], { type: 'text/csv;charset=utf-8;' });
+    // Use semicolon as separator for better Excel compatibility in PT-BR
+    const csvContent = [headers, ...rows].map(e => e.join(';')).join('\n');
+    
+    // Add UTF-8 BOM so Excel opens with correct characters
+    const blob = new Blob(['\uFEFF' + csvContent], { type: 'text/csv;charset=utf-8;' });
     const link = document.createElement('a');
     const url = URL.createObjectURL(blob);
     link.setAttribute('href', url);
-    link.setAttribute('download', `relatorio_vendas_${new Date().toLocaleDateString()}.csv`);
+    link.setAttribute('download', `relatorio_vendas_${new Date().toLocaleDateString().replace(/\//g, '-')}.csv`);
     link.style.visibility = 'hidden';
     document.body.appendChild(link);
     link.click();
