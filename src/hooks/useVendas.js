@@ -43,7 +43,7 @@ export function useVendas() {
     const dbProd = await db.produtos.get(produto.id);
     if (dbProd && dbProd.estoque !== null && !isNaN(dbProd.estoque)) {
       await db.produtos.update(produto.id, { 
-        estoque: Math.max(0, dbProd.estoque - quantidade) 
+        estoque: dbProd.estoque - quantidade
       });
     }
   };
