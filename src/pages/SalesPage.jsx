@@ -1,19 +1,43 @@
-import React, { useState } from 'react';
+import React, { useState, useEffect } from 'react';
 import { useLiveQuery } from 'dexie-react-hooks';
 import { db } from '../db/db';
 import { supabase } from '../lib/supabase';
 import { useVendas } from '../hooks/useVendas';
 import { CreditCard, Banknote, History, LogOut, TrendingUp, DollarSign, PieChart, Share2, CheckCircle2, AlertTriangle, Layers, X, ArrowRight, Trash2 } from 'lucide-react';
 
+// Hook para persistência de estado local
+function useStickyState(defaultValue, key) {
+  const [value, setValue] = useState(() => {
+    try {
+      const stickyValue = window.localStorage.getItem(key);
+      return stickyValue !== null ? JSON.parse(stickyValue) : defaultValue;
+    } catch {
+      return defaultValue;
+    }
+  });
+
+  useEffect(() => {
+    try {
+      window.localStorage.setItem(key, JSON.stringify(value));
+    } catch (e) {
+      console.error('Erro ao salvar no localStorage:', e);
+    }
+  }, [key, value]);
+
+  return [value, setValue];
+}
+
 export default function SalesPage({ onShowHistory, onShowDashboard }) {
   const { stats, registrarVenda, cancelarVenda, encerrarDia, vendasHoje } = useVendas();
   const produtos = useLiveQuery(() => db.produtos.toArray());
-  const [selectedProduct, setSelectedProduct] = useState(null);
-  const [quantidade, setQuantidade] = useState(1);
-  const [cliente, setCliente] = useState('');
-  const [clienteTelefone, setClienteTelefone] = useState('');
-  const [filterCategory, setFilterCategory] = useState('Todas');
-  const [lastSale, setLastSale] = useState(null);
+
+  // Estados persistentes para não perder dados ao mudar de tela/fechar app
+  const [selectedProduct, setSelectedProduct] = useStickyState(null, 'sales_selectedProduct');
+  const [quantidade, setQuantidade] = useStickyState(1, 'sales_quantidade');
+  const [cliente, setCliente] = useStickyState('', 'sales_cliente');
+  const [clienteTelefone, setClienteTelefone] = useStickyState('', 'sales_clienteTelefone');
+  const [filterCategory, setFilterCategory] = useStickyState('Todas', 'sales_filterCategory');
+  const [lastSale, setLastSale] = useStickyState(null, 'sales_lastSale');
   const [showDailyHistory, setShowDailyHistory] = useState(false);
   
   // Filtra 'Geral' da lista para substituir pelo botão de histórico
