@@ -6,7 +6,7 @@ const plans = [
     name: 'Essencial',
     price: '9,90',
     description: 'Comece a organizar sua feira agora',
-    features: ['Vendas Rápidas & Offline', 'Até 10 produtos', 'Recibo via WhatsApp', 'Controle Financeiro Básico'],
+    features: ['Vendas Rápidas & Offline', 'Até 15 produtos', 'Recibo via WhatsApp', 'Controle Financeiro Básico', 'Dados Salvos no Celular'],
     color: 'gray',
     icon: Zap
   },
@@ -14,7 +14,7 @@ const plans = [
     name: 'Pro Cloud',
     price: '24,90',
     description: 'Gestão completa com backup em nuvem',
-    features: ['Tudo do Essencial', 'Produtos & Categorias Ilimitadas', 'Controle de Estoque & Alertas', 'Backup em Nuvem (Supabase)', 'Dashboard de Lucro Real', 'Relatórios Excel (CSV)'],
+    features: ['Tudo do Essencial +', 'Produtos Ilimitados', 'Controle de Estoque Automático', 'Backup Diário em Nuvem', 'Sincronização entre Aparelhos', 'Dashboard de Lucro & Relatórios'],
     color: 'green',
     icon: Rocket,
     popular: true

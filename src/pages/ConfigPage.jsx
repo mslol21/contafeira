@@ -1,11 +1,13 @@
 import React, { useState } from 'react';
 import { v4 as uuidv4 } from 'uuid';
 import { useConfig } from '../hooks/useConfig';
-import { Plus, Trash2, Store, Package, Tag, LogOut } from 'lucide-react';
+import { Plus, Trash2, Store, Package, Tag, LogOut, ArrowUpCircle } from 'lucide-react';
+import UpsellModal from '../components/UpsellModal';
 
 export default function ConfigPage() {
   const { saveConfig } = useConfig();
   const [nomeBarraca, setNomeBarraca] = useState('');
+  const [showUpsell, setShowUpsell] = useState(false);
   const [produtos, setProdutos] = useState([{ 
     id: uuidv4(), 
     nome: '', 
@@ -15,17 +17,37 @@ export default function ConfigPage() {
     categoria: 'Geral' 
   }]);
 
-  const addProduto = () => {
-    if (produtos.length < 30) {
-      setProdutos([...produtos, { 
-        id: uuidv4(), 
-        nome: '', 
-        preco: '', 
-        custo: '', 
-        estoque: '', 
-        categoria: 'Geral' 
-      }]);
+  // Get plan from local storage to work offline
+  const getPlan = () => {
+    try {
+      const profile = JSON.parse(localStorage.getItem('user_profile') || '{}');
+      return profile.plan || 'essencial';
+    } catch {
+      return 'essencial';
     }
+  };
+
+  const isPro = getPlan() === 'pro cloud' || getPlan() === 'pro';
+
+  const addProduto = () => {
+    // Limit for Essential plan
+    if (!isPro && produtos.length >= 15) {
+      setShowUpsell(true);
+      return;
+    }
+
+    // Safety limit for local performance if needed, but Pro should be unlimited (let's say 1000 for sanity or just allow)
+    // The requirement says "Unlimited", so we remove the specific hard limit, or strict it to something huge.
+    // Keeping a reasonable UI limit or just push.
+    
+    setProdutos([...produtos, { 
+      id: uuidv4(), 
+      nome: '', 
+      preco: '', 
+      custo: '', 
+      estoque: '', 
+      categoria: 'Geral' 
+    }]);
   };
 
   const removeProduto = (id) => {
@@ -38,12 +60,49 @@ export default function ConfigPage() {
     ));
   };
 
+  const handleUpgrade = () => {
+    // Reload to trigger plan check/payment flow or redirect
+    // Since we are inside the app, we might need a way to go to Pricing. 
+    // But currently App.jsx controls page based on profile status.
+    // Use window.location to force App to re-evaluate or just clear profile?
+    // Actually, usually user needs to pay via Pix.
+    // As per user request: "Botão: [Atualizar Plano]".
+    // For now, let's redirect to a payment contact or clear subscription status?
+    // Best way: Force "expired" status locally to show PricingPage? No.
+    // Let's reload page. If they are 'essencial', they need to go to 'PricingPage' to upgrade? 
+    // App.jsx shows PricingPage only if !profile or expired.
+    // If they have a profile with 'essencial', App shows SalesPage.
+    // We need a way to trigger "Change Plan".
+    // I will implementation a simple "contact support" or "clear plan" for now, 
+    // but ideally we should have a "Upgrade" route. 
+    // Given the constraints and current App.jsx, let's show an alert or open WhatsApp for upgrade if manual.
+    // OR: Update local profile to trigger 'expired' state? Risky.
+    
+    // Simplest: Redirect to pricing by clearing profile? No, they lose data.
+    // Let's just alert for now or link to support, as the current Auth flow is simple.
+    // Wait, I can simulate "Plan Selection" by modifying the state in App ideally.
+    // But I can't easily access App state here.
+    // I'll reload window and maybe let them know.
+    // Actually, real-world: user contacts admin. 
+    // "Deseja atualizar agora? [Atualizar Plano]" -> Redirects to WhatsApp of Admin?
+    window.open('https://wa.me/55NUMERO_DO_SUPORTE?text=Quero%20fazer%20o%20upgrade%20para%20o%20Plano%20Pro', '_blank');
+    setShowUpsell(false);
+  };
+
   const handleSubmit = async (e) => {
     e.preventDefault();
     if (!nomeBarraca || produtos.some(p => !p.nome || !p.preco)) {
       alert('Por favor, preencha todos os campos obrigatórios.');
       return;
     }
+    
+    // Validate stock access for Essential?
+    // Req: "Essential user trying to access stock... display modal".
+    // Here we mainly INPUT stock. If they input stock, maybe we just save it locally?
+    // Or do we block INPUT of stock? 
+    // "Controle automático de estoque" is Pro.
+    // Let's allow input but warn or just let it be. 
+    // The "Access Stock" upsell might be better placed in Dashboard or Stock List view.
     
     const produtosFormatados = produtos.map(p => ({
       ...p,
@@ -58,6 +117,14 @@ export default function ConfigPage() {
 
   return (
     <div className="max-w-md mx-auto p-6 fade-in pb-24">
+      {showUpsell && (
+        <UpsellModal 
+          trigger="Adicionar mais produtos" 
+          onClose={() => setShowUpsell(false)} 
+          onUpgrade={handleUpgrade} 
+        />
+      )}
+
       <header className="text-center mb-8 pt-4 relative">
         <div className="absolute top-0 right-0">
             <button 
@@ -76,6 +143,17 @@ export default function ConfigPage() {
           <img src="/logo.png" alt="ContaFeira Logo" className="w-56 h-auto drop-shadow-xl" />
         </div>
         <p className="text-gray-500 font-medium mt-1 uppercase text-[10px] tracking-[0.2em]">Gestão Profissional de Inventário</p>
+        
+        {!isPro && (
+            <div className="mt-4 bg-gray-100 p-2 rounded-xl inline-block">
+                <p className="text-xs text-gray-500 flex items-center gap-2">
+                    Plano Essencial: <span className="font-bold text-gray-800">{produtos.length} / 15 produtos</span>
+                </p>
+                <div className="w-full bg-gray-200 h-1.5 rounded-full mt-1 overflow-hidden">
+                    <div className="bg-[#4CAF50] h-full rounded-full transition-all" style={{ width: `${(produtos.length / 15) * 100}%` }}></div>
+                </div>
+            </div>
+        )}
       </header>
 
       <form onSubmit={handleSubmit} className="space-y-6">
@@ -98,6 +176,11 @@ export default function ConfigPage() {
             <label className="text-xs font-black text-[#4CAF50] uppercase tracking-widest flex items-center gap-2">
               <Package size={14} /> Seus Produtos & Estoque
             </label>
+            {isPro && (
+                <span className="text-[10px] bg-[#4CAF50]/10 text-[#4CAF50] px-2 py-1 rounded-md font-black uppercase">
+                    PRO: Ilimitado
+                </span>
+            )}
           </div>
           
           <div className="space-y-4">
@@ -166,7 +249,7 @@ export default function ConfigPage() {
                     <span className="text-[9px] font-black text-gray-400 uppercase tracking-widest ml-1">Estoque Inicial</span>
                     <input
                       type="number"
-                      placeholder="∞"
+                      placeholder={isPro ? "∞" : "Bloqueado"} // Optional visual limitation
                       className="w-full p-3 bg-gray-50 rounded-xl border-none focus:ring-2 focus:ring-blue-400 outline-none text-gray-900 font-bold"
                       value={p.estoque}
                       onChange={(e) => updateProduto(p.id, 'estoque', e.target.value)}

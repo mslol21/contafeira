@@ -4,6 +4,7 @@ import { db } from '../db/db';
 import { supabase } from '../lib/supabase';
 import { useVendas } from '../hooks/useVendas';
 import { CreditCard, Banknote, History, LogOut, TrendingUp, DollarSign, PieChart, Share2, CheckCircle2, AlertTriangle, Layers, X, ArrowRight, Trash2 } from 'lucide-react';
+import UpsellModal from '../components/UpsellModal';
 
 // Hook para persistência de estado local
 function useStickyState(defaultValue, key) {
@@ -39,9 +40,27 @@ export default function SalesPage({ onShowHistory, onShowDashboard }) {
   const [filterCategory, setFilterCategory] = useStickyState('Todas', 'sales_filterCategory');
   const [lastSale, setLastSale] = useStickyState(null, 'sales_lastSale');
   const [showDailyHistory, setShowDailyHistory] = useState(false);
-  
+  const [showUpsell, setShowUpsell] = useState(false);
+  const [upsellTrigger, setUpsellTrigger] = useState('Recurso Pro');
+
+  // Plan Check
+  const getPlan = () => {
+    try {
+      const profile = JSON.parse(localStorage.getItem('user_profile') || '{}');
+      return profile.plan || 'essencial';
+    } catch {
+      return 'essencial';
+    }
+  };
+  const isPro = getPlan() === 'pro cloud' || getPlan() === 'pro';
+
   // Filtra 'Geral' da lista para substituir pelo botão de histórico
-  const categories = ['Todas', 'Baixo Estoque', ...new Set(produtos?.map(p => p.categoria || 'Geral').filter(c => c !== 'Geral'))];
+  // Only show 'Baixo Estoque' filter if Pro
+  const categories = [
+      'Todas', 
+      ...(isPro ? ['Baixo Estoque'] : []), 
+      ...new Set(produtos?.map(p => p.categoria || 'Geral').filter(c => c !== 'Geral'))
+  ];
 
   const handleProductClick = (produto) => {
     setSelectedProduct(produto);
@@ -112,6 +131,20 @@ export default function SalesPage({ onShowHistory, onShowDashboard }) {
     }
   };
 
+  const handleDashboardClick = () => {
+      if (!isPro) {
+          setUpsellTrigger('Dashboard Completo');
+          setShowUpsell(true);
+      } else {
+          onShowDashboard();
+      }
+  };
+  
+  const handleUpgrade = () => {
+    window.open('https://wa.me/55NUMERO_DO_SUPORTE?text=Quero%20fazer%20o%20upgrade%20para%20o%20Plano%20Pro', '_blank');
+    setShowUpsell(false);
+  };
+
   const formatCurrency = (val) => {
     return val.toLocaleString('pt-BR', { style: 'currency', currency: 'BRL' });
   };
@@ -124,6 +157,14 @@ export default function SalesPage({ onShowHistory, onShowDashboard }) {
 
   return (
     <div className="flex flex-col h-screen max-w-md mx-auto bg-[#FAFAFA] pb-safe font-['Outfit']">
+      {showUpsell && (
+        <UpsellModal 
+          trigger={upsellTrigger} 
+          onClose={() => setShowUpsell(false)} 
+          onUpgrade={handleUpgrade} 
+        />
+      )}
+
       {/* Stats Header */}
       <div className="bg-gradient-to-br from-[#4CAF50] to-[#8BC34A] p-6 pt-10 text-white rounded-b-[3.5rem] shadow-xl z-20">
         <div className="flex justify-between items-start mb-4">
@@ -133,7 +174,7 @@ export default function SalesPage({ onShowHistory, onShowDashboard }) {
           </div>
           <div className="flex gap-2">
             <button 
-              onClick={onShowDashboard}
+              onClick={handleDashboardClick}
               className="p-3 bg-black/10 hover:bg-black/20 active:scale-90 rounded-2xl transition-all border border-white/20 backdrop-blur-sm"
               title="Dashboard"
             >
@@ -142,6 +183,7 @@ export default function SalesPage({ onShowHistory, onShowDashboard }) {
             <button 
               onClick={onShowHistory}
               className="p-3 bg-black/10 hover:bg-black/20 active:scale-90 rounded-2xl transition-all border border-white/20 backdrop-blur-sm"
+              title="Histórico"
             >
               <History size={24} />
             </button>
@@ -311,13 +353,14 @@ export default function SalesPage({ onShowHistory, onShowDashboard }) {
               
               <div className="flex justify-between items-start mb-1">
                 <span className="text-xs font-bold text-gray-400 uppercase tracking-widest">{p.nome}</span>
-                {p.estoque !== null && p.estoque <= 5 && (
+                {/* Stock alert only for Pro */}
+                {isPro && p.estoque !== null && p.estoque <= 5 && (
                   <div className="flex items-center gap-1 text-red-500 animate-pulse">
                     <AlertTriangle size={14} />
                     <span className="text-[9px] font-black uppercase tracking-widest">Estoque: {p.estoque}</span>
                   </div>
                 )}
-                {p.estoque !== null && p.estoque > 5 && (
+                {isPro && p.estoque !== null && p.estoque > 5 && (
                   <span className="text-[9px] font-black text-gray-300 uppercase tracking-widest">Estoque: {p.estoque}</span>
                 )}
               </div>

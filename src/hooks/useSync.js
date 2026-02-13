@@ -6,6 +6,15 @@ export function useSync() {
   const [isSyncing, setIsSyncing] = useState(false);
   const [lastSync, setLastSync] = useState(null);
 
+  const getPlan = () => {
+    try {
+      const profile = JSON.parse(localStorage.getItem('user_profile') || '{}');
+      return profile.plan || 'essencial';
+    } catch {
+      return 'essencial';
+    }
+  };
+
   const syncData = async () => {
     if (isSyncing) return;
     
@@ -15,8 +24,17 @@ export function useSync() {
     const { data: { user } } = await supabase.auth.getUser();
     if (!user) return;
 
+    // Check Plan - Only Pro plans sync business data
+    const plan = getPlan();
+    const isPro = plan === 'pro cloud' || plan === 'pro';
+    
+    if (!isPro) {
+      // console.log('Plano Essencial: Sincronização de dados ignorada.');
+      return; 
+    }
+
     setIsSyncing(true);
-    console.log('Iniciando sincronização...');
+    console.log('Iniciando sincronização (Plano Pro)...');
 
     try {
       // 1. Sync CONFIGURATION
