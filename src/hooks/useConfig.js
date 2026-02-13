@@ -1,6 +1,6 @@
 import { useState, useEffect } from 'react';
 import { useLiveQuery } from 'dexie-react-hooks';
-import { db } from '../db/db';
+import { getDB } from '../db/db';
 import { supabase } from '../lib/supabase';
 import { v4 as uuidv4 } from 'uuid';
 
@@ -13,8 +13,10 @@ export function useConfig() {
     });
   }, []);
 
+  const userDB = getDB(userId);
+
   const config = useLiveQuery(
-    () => userId ? db.configuracao.where('user_id').equals(userId).toArray() : [],
+    () => userId ? userDB.configuracao.toArray() : [],
     [userId]
   );
   
@@ -25,25 +27,27 @@ export function useConfig() {
     const user = session?.user;
     if (!user) return;
 
-    // Clear previous config for THIS user specifically
-    await db.configuracao.where('user_id').equals(user.id).delete();
-    
-    await db.configuracao.add({ 
+    const now = new Date().toISOString();
+    const dbInstance = getDB(user.id);
+
+    // Dynamic filtering is implicit because each user has their own DB
+    await dbInstance.configuracao.clear();
+    await dbInstance.configuracao.add({ 
       id: uuidv4(), 
       nomeBarraca, 
       user_id: user.id, 
-      synced: 0 
+      synced: 0,
+      updated_at: now
     });
     
-    // Clear previous products for THIS user specifically
-    await db.produtos.where('user_id').equals(user.id).delete();
-    
+    await dbInstance.produtos.clear();
     const produtosComUser = produtos.map(p => ({ 
       ...p, 
       user_id: user.id, 
-      synced: 0 
+      synced: 0,
+      updated_at: now
     }));
-    await db.produtos.bulkAdd(produtosComUser);
+    await dbInstance.produtos.bulkAdd(produtosComUser);
   };
 
   return {

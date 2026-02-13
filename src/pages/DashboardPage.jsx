@@ -1,6 +1,6 @@
-import React, { useState, useEffect } from 'react';
+import React, { useState, useEffect, useMemo } from 'react';
 import { useLiveQuery } from 'dexie-react-hooks';
-import { db } from '../db/db';
+import { getDB } from '../db/db';
 import { supabase } from '../lib/supabase';
 import { ArrowLeft, TrendingUp, TrendingDown, DollarSign, Package, PieChart, Download } from 'lucide-react';
 
@@ -13,20 +13,47 @@ export default function DashboardPage({ onBack }) {
     });
   }, []);
 
+  const userDB = getDB(userId);
+
   const resumos = useLiveQuery(
-    () => userId ? db.resumos.where('user_id').equals(userId).toArray().then(arr => arr.sort((a,b) => b.data.localeCompare(a.data))) : [],
+    () => userId ? userDB.resumos.toArray().then(arr => arr.sort((a,b) => b.data.localeCompare(a.data))) : [],
     [userId]
   );
   
   const produtos = useLiveQuery(
-    () => userId ? db.produtos.where('user_id').equals(userId).toArray() : [],
+    () => userId ? userDB.produtos.toArray() : [],
     [userId]
   );
 
   const vendasHoje = useLiveQuery(
-    () => userId ? db.vendas.where('user_id').equals(userId).toArray() : [],
+    () => userId ? userDB.vendas.toArray() : [],
     [userId]
   );
+
+  const statsTotal = useMemo(() => {
+    if (!resumos) return { receita: 0, custo: 0, lucro: 0 };
+    const receita = resumos.reduce((acc, r) => acc + (r.total || 0), 0);
+    const custo = resumos.reduce((acc, r) => acc + (r.totalCustos || 0), 0);
+    return {
+      receita,
+      custo,
+      lucro: receita - custo
+    };
+  }, [resumos]);
+
+  const desempenhoReal = useMemo(() => {
+    if (!produtos || !vendasHoje) return [];
+    return produtos.map(p => {
+      const vendasDoItem = vendasHoje.filter(v => v.nomeProduto === p.nome);
+      const qtdVendida = vendasDoItem.reduce((acc, v) => acc + v.quantidade, 0);
+      const receitaGerada = vendasDoItem.reduce((acc, v) => acc + v.valor, 0);
+      return {
+        ...p,
+        qtdVendida,
+        receitaGerada
+      };
+    }).sort((a, b) => b.receitaGerada - a.receitaGerada);
+  }, [produtos, vendasHoje]);
 
   const exportToCSV = () => {
     if (!resumos || resumos.length === 0) return;
@@ -34,19 +61,16 @@ export default function DashboardPage({ onBack }) {
     const headers = ['Data', 'Receita Bruta', 'Custos Producao', 'Lucro Liquido', 'Pix', 'Dinheiro', 'Cartao', 'Qtd Vendas'];
     const rows = resumos.map(r => [
       r.data,
-      r.total.toFixed(2),
+      (r.total || 0).toFixed(2),
       (r.totalCustos || 0).toFixed(2),
-      (r.total - (r.totalCustos || 0)).toFixed(2),
-      r.totalPix.toFixed(2),
-      r.totalDinheiro.toFixed(2),
-      r.totalCartao.toFixed(2),
+      ((r.total || 0) - (r.totalCustos || 0)).toFixed(2),
+      (r.totalPix || 0).toFixed(2),
+      (r.totalDinheiro || 0).toFixed(2),
+      (r.totalCartao || 0).toFixed(2),
       r.quantidadeVendas
     ]);
 
-    // Use semicolon as separator for better Excel compatibility in PT-BR
     const csvContent = [headers, ...rows].map(e => e.join(';')).join('\n');
-    
-    // Add UTF-8 BOM so Excel opens with correct characters
     const blob = new Blob(['\uFEFF' + csvContent], { type: 'text/csv;charset=utf-8;' });
     const link = document.createElement('a');
     const url = URL.createObjectURL(blob);
@@ -61,27 +85,6 @@ export default function DashboardPage({ onBack }) {
   const formatCurrency = (val) => {
     return (val || 0).toLocaleString('pt-BR', { style: 'currency', currency: 'BRL' });
   };
-
-  const statsTotal = {
-    receita: resumos?.reduce((acc, r) => acc + r.total, 0) || 0,
-    custo: resumos?.reduce((acc, r) => acc + (r.totalCustos || 0), 0) || 0,
-    lucro: 0
-  };
-  statsTotal.lucro = statsTotal.receita - statsTotal.custo;
-
-
-
-  // Agrega vendas por produto
-  const desempenhoReal = produtos?.map(p => {
-    const vendasDoItem = vendasHoje?.filter(v => v.nomeProduto === p.nome) || [];
-    const qtdVendida = vendasDoItem.reduce((acc, v) => acc + v.quantidade, 0);
-    const receitaGerada = vendasDoItem.reduce((acc, v) => acc + v.valor, 0);
-    return {
-      ...p,
-      qtdVendida,
-      receitaGerada
-    };
-  }).sort((a, b) => b.receitaGerada - a.receitaGerada); // Ordena por quem rendeu mais
 
   return (
     <div className="flex flex-col h-screen max-w-md mx-auto bg-[#FAFAFA] font-['Outfit']">
@@ -98,7 +101,6 @@ export default function DashboardPage({ onBack }) {
         <button 
           onClick={exportToCSV}
           className="p-3 bg-gray-50 text-gray-600 rounded-2xl hover:bg-gray-100 active:scale-95 transition-all flex items-center gap-2"
-          title="Exportar CSV"
         >
           <Download size={20} />
           <span className="text-[10px] font-black uppercase tracking-widest hidden sm:inline">Exportar</span>
@@ -106,7 +108,6 @@ export default function DashboardPage({ onBack }) {
       </header>
 
       <div className="flex-1 overflow-y-auto p-6 space-y-6 pb-24">
-        {/* Main Cards */}
         <div className="grid grid-cols-1 gap-4">
           <div className="bg-white p-6 rounded-[2.5rem] shadow-sm border border-gray-50 flex items-center gap-5">
             <div className="w-14 h-14 bg-green-50 rounded-2xl flex items-center justify-center text-green-600">
@@ -150,7 +151,6 @@ export default function DashboardPage({ onBack }) {
           </div>
         </div>
 
-        {/* Insights Section - Agora mostra vendas reais */}
         <section className="space-y-4">
            <div className="flex items-center gap-2">
               <Package size={20} className="text-[#FF9800]" />
@@ -158,7 +158,7 @@ export default function DashboardPage({ onBack }) {
            </div>
            
            <div className="space-y-3">
-              {desempenhoReal?.map(p => (
+              {desempenhoReal.map(p => (
                 <div key={p.id} className="bg-white p-4 rounded-2xl border border-gray-100 flex justify-between items-center group">
                   <div>
                     <p className="text-xs font-black text-gray-400 uppercase tracking-widest leading-none mb-1">{p.nome}</p>
@@ -179,7 +179,7 @@ export default function DashboardPage({ onBack }) {
                   </div>
                 </div>
               ))}
-              {desempenhoReal?.length === 0 && (
+              {desempenhoReal.length === 0 && (
                   <p className="text-center text-gray-400 text-xs py-4">Nenhum produto cadastrado.</p>
               )}
            </div>

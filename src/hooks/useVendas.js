@@ -1,12 +1,12 @@
-import { useState, useEffect } from 'react';
+import { useState, useEffect, useMemo, useCallback } from 'react';
 import { useLiveQuery } from 'dexie-react-hooks';
-import { db } from '../db/db';
+import { getDB } from '../db/db';
 import { v4 as uuidv4 } from 'uuid';
 import { supabase } from '../lib/supabase';
 
 export function useVendas() {
-  const today = new Date().toISOString().split('T')[0];
   const [userId, setUserId] = useState(null);
+  const today = useMemo(() => new Date().toISOString().split('T')[0], []);
 
   useEffect(() => {
     supabase.auth.getSession().then(({ data: { session } }) => {
@@ -14,15 +14,18 @@ export function useVendas() {
     });
   }, []);
   
+  const userDB = getDB(userId);
+
+  // Vendas do dia atual que ainda NÃO foram arquivadas num resumo
   const vendasHoje = useLiveQuery(() => 
-    userId ? db.vendas.where({ data: today, user_id: userId }).toArray() : [],
+    userId ? userDB.vendas.where({ data: today }).filter(v => !v.resumo_id).toArray() : [],
     [userId, today]
   );
 
-  const registrarVenda = async (produto, formaPagamento, quantidade = 1, cliente = null) => {
-    const { data: { session } } = await supabase.auth.getSession();
-    const user = session?.user;
-    if (!user) return;
+  const registrarVenda = useCallback(async (produto, formaPagamento, quantidade = 1, cliente = null) => {
+    if (!userId) return;
+    const now = new Date().toISOString();
+    const dbInstance = getDB(userId);
 
     const venda = {
       id: uuidv4(),
@@ -33,47 +36,46 @@ export function useVendas() {
       cliente,
       data: today,
       hora: new Date().toLocaleTimeString('pt-BR', { hour: '2-digit', minute: '2-digit' }),
-      user_id: user.id,
-      synced: 0
+      user_id: userId,
+      synced: 0,
+      updated_at: now,
+      resumo_id: null // Ainda não arquivado
     };
 
-    await db.vendas.add(venda);
+    await dbInstance.vendas.add(venda);
 
-    // Decrement stock
-    const dbProd = await db.produtos.get(produto.id);
-    if (dbProd && dbProd.estoque !== null && !isNaN(dbProd.estoque)) {
-      await db.produtos.update(produto.id, { 
-        estoque: dbProd.estoque - quantidade
+    // Gestão de Estoque
+    const dbProd = await dbInstance.produtos.get(produto.id);
+    if (dbProd && dbProd.estoque !== null) {
+      await dbInstance.produtos.update(produto.id, { 
+        estoque: dbProd.estoque - quantidade,
+        updated_at: now,
+        synced: 0
       });
     }
-  };
+  }, [userId, today]);
 
-  const encerrarDia = async () => {
-    if (!vendasHoje || vendasHoje.length === 0) return;
-    const { data: { session } } = await supabase.auth.getSession();
-    const user = session?.user;
-    if (!user) return;
+  const encerrarDia = useCallback(async () => {
+    if (!vendasHoje || vendasHoje.length === 0 || !userId) return;
+    
+    const now = new Date().toISOString();
+    const dbInstance = getDB(userId);
+    const resumoId = uuidv4();
 
+    // Consolidação
     const total = vendasHoje.reduce((acc, v) => acc + v.valor, 0);
-    const totalPix = vendasHoje
-      .filter(v => v.formaPagamento === 'pix')
-      .reduce((acc, v) => acc + v.valor, 0);
-    const totalDinheiro = vendasHoje
-      .filter(v => v.formaPagamento === 'dinheiro')
-      .reduce((acc, v) => acc + v.valor, 0);
-    const totalCartao = vendasHoje
-      .filter(v => v.formaPagamento === 'cartao')
-      .reduce((acc, v) => acc + v.valor, 0);
+    const totalPix = vendasHoje.filter(v => v.formaPagamento === 'pix').reduce((acc, v) => acc + v.valor, 0);
+    const totalDinheiro = vendasHoje.filter(v => v.formaPagamento === 'dinheiro').reduce((acc, v) => acc + v.valor, 0);
+    const totalCartao = vendasHoje.filter(v => v.formaPagamento === 'cartao').reduce((acc, v) => acc + v.valor, 0);
 
-    // Calculate total costs for the summary
-    const produtos = await db.produtos.where('user_id').equals(user.id).toArray();
+    const produtos = await dbInstance.produtos.toArray();
     const totalCustos = vendasHoje.reduce((acc, v) => {
       const prod = produtos.find(p => p.nome === v.nomeProduto);
       return acc + ((prod?.custo || 0) * v.quantidade);
     }, 0);
 
     const resumo = {
-      id: uuidv4(),
+      id: resumoId,
       data: today,
       total,
       totalPix,
@@ -81,37 +83,46 @@ export function useVendas() {
       totalCartao,
       totalCustos,
       quantidadeVendas: vendasHoje.length,
-      user_id: user.id,
-      synced: 0
+      user_id: userId,
+      synced: 0,
+      updated_at: now
     };
 
-    await db.resumos.add(resumo);
-    await db.vendas.where('data').equals(today).delete();
-  };
+    await dbInstance.resumos.add(resumo);
 
-  const cancelarVenda = async (vendaId) => {
-    const venda = await db.vendas.get(vendaId);
+    // Em vez de deletar, marcamos como arquivado. 
+    // Isso garante que os registros individuais sejam sincronizados para relatórios detalhados no futuro.
+    await dbInstance.vendas.where({ data: today }).modify({ resumo_id: resumoId, updated_at: now, synced: 0 });
+  }, [vendasHoje, userId, today]);
+
+  const cancelarVenda = useCallback(async (vendaId) => {
+    if (!userId) return;
+    const dbInstance = getDB(userId);
+    const now = new Date().toISOString();
+    
+    const venda = await dbInstance.vendas.get(vendaId);
     if (!venda) return;
     
-    // Devolver ao estoque
-    const produto = await db.produtos.where('nome').equals(venda.nomeProduto).first();
+    const produto = await dbInstance.produtos.where('nome').equals(venda.nomeProduto).first();
     if (produto && produto.estoque !== null) {
-        await db.produtos.update(produto.id, {
-            estoque: produto.estoque + venda.quantidade
+        await dbInstance.produtos.update(produto.id, {
+            estoque: produto.estoque + venda.quantidade,
+            updated_at: now,
+            synced: 0
         });
     }
 
-    await db.vendas.delete(vendaId);
-  };
+    await dbInstance.vendas.delete(vendaId);
+  }, [userId]);
 
-  const stats = {
+  const stats = useMemo(() => ({
     total: vendasHoje?.reduce((acc, v) => acc + v.valor, 0) || 0,
     totalPix: vendasHoje?.filter(v => v.formaPagamento === 'pix').reduce((acc, v) => acc + v.valor, 0) || 0,
     totalDinheiro: vendasHoje?.filter(v => v.formaPagamento === 'dinheiro').reduce((acc, v) => acc + v.valor, 0) || 0,
     totalCartao: vendasHoje?.filter(v => v.formaPagamento === 'cartao').reduce((acc, v) => acc + v.valor, 0) || 0,
     quantidade: vendasHoje?.reduce((acc, v) => acc + (v.quantidade || 1), 0) || 0,
     numVendas: vendasHoje?.length || 0
-  };
+  }), [vendasHoje]);
 
   return {
     vendasHoje,

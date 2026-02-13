@@ -1,6 +1,6 @@
 import { useState, useEffect } from 'react';
 import { useLiveQuery } from 'dexie-react-hooks';
-import { db } from '../db/db';
+import { getDB } from '../db/db';
 import { supabase } from '../lib/supabase';
 
 export function useHistorico() {
@@ -12,8 +12,10 @@ export function useHistorico() {
     });
   }, []);
 
+  const userDB = getDB(userId);
+
   const historico = useLiveQuery(
-    () => userId ? db.resumos.where('user_id').equals(userId).reverse().sortBy('data') : [],
+    () => userId ? userDB.resumos.reverse().sortBy('data') : [],
     [userId]
   );
 

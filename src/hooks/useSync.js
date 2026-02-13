@@ -1,193 +1,121 @@
-import { useEffect, useState } from 'react';
-import { db } from '../db/db';
+import { useEffect, useState, useCallback } from 'react';
+import { getDB } from '../db/db';
 import { supabase } from '../lib/supabase';
 
 export function useSync() {
-  const [isSyncing, setIsSyncing] = useState(false);
-  const [lastSync, setLastSync] = useState(null);
+  const [status, setStatus] = useState('synced'); // 'offline', 'syncing', 'synced'
+  const [lastSync, setLastSync] = useState(() => localStorage.getItem('last_sync_time'));
 
-  const getPlan = () => {
+  const getPlan = useCallback(() => {
     try {
       const profile = JSON.parse(localStorage.getItem('user_profile') || '{}');
       return profile.plan || 'essencial';
     } catch {
       return 'essencial';
     }
-  };
-
-  const syncData = async () => {
-    if (isSyncing) return;
-    
-    // Check if online
-    if (!navigator.onLine) return;
-
-    const { data: { user } } = await supabase.auth.getUser();
-    if (!user) return;
-
-    // Check Plan - Only Pro plans sync business data
-    const plan = getPlan();
-    const isPro = plan === 'pro cloud' || plan === 'pro';
-    
-    if (!isPro) {
-      // console.log('Plano Essencial: Sincronização de dados ignorada.');
-      return; 
-    }
-
-    setIsSyncing(true);
-    console.log('Iniciando sincronização (Plano Pro)...');
-
-    try {
-      // 1. Sync CONFIGURATION
-      const unsyncedConfig = await db.configuracao.where('synced').equals(0).toArray();
-      for (const config of unsyncedConfig) {
-        const { error } = await supabase
-          .from('configuracao')
-          .upsert({ 
-            id: config.id, 
-            nome_barraca: config.nomeBarraca, 
-            user_id: user.id 
-          });
-        
-        if (!error) {
-          await db.configuracao.update(config.id, { synced: 1 });
-        }
-      }
-
-      // 2. Sync PRODUCTS
-      const unsyncedProdutos = await db.produtos.where('synced').equals(0).toArray();
-      if (unsyncedProdutos.length > 0) {
-        const toUpload = unsyncedProdutos.map(p => ({
-          id: p.id,
-          nome: p.nome,
-          preco: p.preco,
-          user_id: user.id
-        }));
-
-        const { error } = await supabase.from('produtos').upsert(toUpload);
-        if (!error) {
-          await db.produtos.where('id').anyOf(unsyncedProdutos.map(p => p.id)).modify({ synced: 1 });
-        }
-      }
-
-      // 3. Sync SALES (Vendas)
-      const unsyncedVendas = await db.vendas.where('synced').equals(0).toArray();
-      if (unsyncedVendas.length > 0) {
-        const toUpload = unsyncedVendas.map(v => ({
-          id: v.id,
-          nome_produto: v.nomeProduto,
-          valor: v.valor,
-          quantidade: v.quantidade,
-          forma_pagamento: v.formaPagamento,
-          cliente: v.cliente,
-          data: v.data,
-          hora: v.hora,
-          user_id: user.id
-        }));
-
-        const { error } = await supabase.from('vendas').upsert(toUpload);
-        if (!error) {
-          await db.vendas.where('id').anyOf(unsyncedVendas.map(v => v.id)).modify({ synced: 1 });
-        }
-      }
-
-      // 4. Sync SUMMARIES (Resumos)
-      const unsyncedResumos = await db.resumos.where('synced').equals(0).toArray();
-      if (unsyncedResumos.length > 0) {
-        const toUpload = unsyncedResumos.map(r => ({
-          id: r.id,
-          data: r.data,
-          total: r.total,
-          total_pix: r.totalPix,
-          total_dinheiro: r.totalDinheiro,
-          total_cartao: r.totalCartao,
-          quantidade_vendas: r.quantidadeVendas,
-          user_id: user.id
-        }));
-
-        const { error } = await supabase.from('resumos').upsert(toUpload);
-        if (!error) {
-          await db.resumos.where('id').anyOf(unsyncedResumos.map(r => r.id)).modify({ synced: 1 });
-        }
-      }
-
-      setLastSync(new Date());
-      console.log('Upload concluído, verificando atualizações do servidor...');
-
-      // 5. DOWNLOAD (Sync Down) - Traz dados do servidor para o local
-      // Produtos
-      const { data: serverProdutos } = await supabase.from('produtos').select('*').eq('user_id', user.id);
-      if (serverProdutos) {
-        await db.produtos.bulkPut(serverProdutos.map(p => ({ ...p, synced: 1 })));
-      }
-
-      // Configuração
-      const { data: serverConfig } = await supabase.from('configuracao').select('*').eq('user_id', user.id);
-      if (serverConfig) {
-        await db.configuracao.bulkPut(serverConfig.map(c => ({
-           id: c.id, 
-           nomeBarraca: c.nome_barraca, 
-           synced: 1, 
-           user_id: c.user_id 
-        })));
-      }
-
-      // Vendas
-      const { data: serverVendas } = await supabase.from('vendas').select('*').eq('user_id', user.id);
-      if (serverVendas) {
-        await db.vendas.bulkPut(serverVendas.map(v => ({
-           id: v.id,
-           nomeProduto: v.nome_produto,
-           valor: v.valor,
-           quantidade: v.quantidade,
-           formaPagamento: v.forma_pagamento,
-           cliente: v.cliente,
-           data: v.data,
-           hora: v.hora,
-           user_id: v.user_id,
-           synced: 1
-        })));
-      }
-
-      // Resumos
-      const { data: serverResumos } = await supabase.from('resumos').select('*').eq('user_id', user.id);
-      if (serverResumos) {
-        await db.resumos.bulkPut(serverResumos.map(r => ({
-           id: r.id,
-           data: r.data,
-           total: r.total,
-           totalPix: r.total_pix,
-           totalDinheiro: r.total_dinheiro,
-           totalCartao: r.total_cartao,
-           quantidadeVendas: r.quantidade_vendas,
-           totalCustos: r.total_custos || 0,
-           user_id: r.user_id,
-           synced: 1
-        })));
-      }
-      
-      console.log('Sincronização bidirecional concluída!');
-    } catch (err) {
-      console.error('Erro na sincronização:', err);
-    } finally {
-      setIsSyncing(false);
-    }
-  };
-
-  useEffect(() => {
-    // Initial sync
-    syncData();
-
-    // Listen for online event
-    window.addEventListener('online', syncData);
-    
-    // Periodic sync every 5 minutes
-    const interval = setInterval(syncData, 5 * 60 * 1000);
-
-    return () => {
-      window.removeEventListener('online', syncData);
-      clearInterval(interval);
-    };
   }, []);
 
-  return { isSyncing, lastSync, syncData };
+  const syncData = useCallback(async () => {
+    if (!navigator.onLine) {
+       setStatus('offline');
+       return;
+    }
+
+    const { data: { user } } = await supabase.auth.getUser();
+    if (!user) {
+        setStatus('offline');
+        return;
+    }
+
+    const plan = getPlan();
+    const isPro = plan.includes('pro');
+    
+    // Only Pro users (or Pro Trial) have cloud sync
+    if (!isPro) {
+        setStatus('synced');
+        return;
+    }
+
+    setStatus('syncing');
+    const userDB = getDB(user.id);
+    
+    try {
+      const tables = ['configuracao', 'produtos', 'vendas', 'resumos', 'despesas'];
+      
+      for (const table of tables) {
+        const lastSyncKey = `last_sync_${table}_${user.id}`;
+        const lastSyncTime = localStorage.getItem(lastSyncKey) || '1970-01-01T00:00:00Z';
+
+        // 1. UPLOAD LOCAL CHANGES (synced = 0)
+        const localItems = await userDB[table].where('synced').equals(0).toArray();
+        if (localItems.length > 0) {
+          const toUpsert = localItems.map(item => {
+            const { synced, ...rest } = item;
+            // Mapping for Supabase (Snake Case)
+            if (table === 'configuracao') return { ...rest, nome_barraca: item.nomeBarraca, user_id: user.id };
+            if (table === 'vendas') return { ...rest, nome_produto: item.nomeProduto, forma_pagamento: item.formaPagamento, user_id: user.id };
+            if (table === 'resumos') return { ...rest, total_pix: item.totalPix, total_dinheiro: item.totalDinheiro, total_cartao: item.totalCartao, quantidade_vendas: item.quantidadeVendas, total_custos: item.totalCustos, user_id: user.id };
+            return { ...rest, user_id: user.id };
+          });
+
+          const { error } = await supabase.from(table).upsert(toUpsert);
+          if (!error) {
+            await userDB[table].where('id').anyOf(localItems.map(i => i.id)).modify({ synced: 1 });
+          }
+        }
+
+        // 2. DOWNLOAD REMOTE CHANGES
+        const { data: remoteItems, error: downError } = await supabase
+          .from(table)
+          .select('*')
+          .gt('updated_at', lastSyncTime)
+          .eq('user_id', user.id);
+
+        if (!downError && remoteItems && remoteItems.length > 0) {
+          for (const remote of remoteItems) {
+            const local = await userDB[table].get(remote.id);
+            // Conflict Control: Last Write Wins
+            if (!local || new Date(remote.updated_at) > new Date(local.updated_at)) {
+              let toStore = { ...remote, synced: 1 };
+              // Reverse mapping for local (Camel Case)
+              if (table === 'configuracao') toStore = { ...toStore, nomeBarraca: remote.nome_barraca };
+              if (table === 'vendas') toStore = { ...toStore, nomeProduto: remote.nome_produto, formaPagamento: remote.forma_pagamento };
+              if (table === 'resumos') toStore = { ...toStore, totalPix: remote.total_pix, totalDinheiro: remote.total_dinheiro, totalCartao: remote.total_cartao, quantidadeVendas: remote.quantidade_vendas, totalCustos: remote.total_custos };
+              
+              await userDB[table].put(toStore);
+            }
+          }
+          const maxUpdate = remoteItems.reduce((max, i) => i.updated_at > max ? i.updated_at : max, lastSyncTime);
+          localStorage.setItem(lastSyncKey, maxUpdate);
+        }
+      }
+
+      const globalNow = new Date().toISOString();
+      localStorage.setItem('last_sync_time', globalNow);
+      setLastSync(globalNow);
+      setStatus('synced');
+    } catch (err) {
+      console.error('Sync error:', err);
+      setStatus('offline');
+    }
+  }, [getPlan]);
+
+  useEffect(() => {
+    syncData();
+    const interval = setInterval(syncData, 60000); // More frequent sync (1 min)
+    
+    const handleOnline = () => syncData();
+    const handleOffline = () => setStatus('offline');
+    
+    window.addEventListener('online', handleOnline);
+    window.addEventListener('offline', handleOffline);
+
+    return () => {
+      clearInterval(interval);
+      window.removeEventListener('online', handleOnline);
+      window.removeEventListener('offline', handleOffline);
+    };
+  }, [syncData]);
+
+  return { status, lastSync, syncData };
 }
