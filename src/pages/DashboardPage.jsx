@@ -48,6 +48,20 @@ export default function DashboardPage({ onBack }) {
   };
   statsTotal.lucro = statsTotal.receita - statsTotal.custo;
 
+  const vendasHoje = useLiveQuery(() => db.vendas.toArray());
+
+  // Agrega vendas por produto
+  const desempenhoReal = produtos?.map(p => {
+    const vendasDoItem = vendasHoje?.filter(v => v.nomeProduto === p.nome) || [];
+    const qtdVendida = vendasDoItem.reduce((acc, v) => acc + v.quantidade, 0);
+    const receitaGerada = vendasDoItem.reduce((acc, v) => acc + v.valor, 0);
+    return {
+      ...p,
+      qtdVendida,
+      receitaGerada
+    };
+  }).sort((a, b) => b.receitaGerada - a.receitaGerada); // Ordena por quem rendeu mais
+
   return (
     <div className="flex flex-col h-screen max-w-md mx-auto bg-[#FAFAFA] font-['Outfit']">
       <header className="bg-white p-6 border-b border-gray-100 flex items-center justify-between">
@@ -115,28 +129,38 @@ export default function DashboardPage({ onBack }) {
           </div>
         </div>
 
-        {/* Insights Section */}
+        {/* Insights Section - Agora mostra vendas reais */}
         <section className="space-y-4">
            <div className="flex items-center gap-2">
               <Package size={20} className="text-[#FF9800]" />
-              <h4 className="text-gray-900 font-black uppercase text-xs tracking-widest">Desempenho por Item</h4>
+              <h4 className="text-gray-900 font-black uppercase text-xs tracking-widest">Desempenho Hoje (Vendas Reais)</h4>
            </div>
            
            <div className="space-y-3">
-              {produtos?.map(p => (
+              {desempenhoReal?.map(p => (
                 <div key={p.id} className="bg-white p-4 rounded-2xl border border-gray-100 flex justify-between items-center group">
                   <div>
                     <p className="text-xs font-black text-gray-400 uppercase tracking-widest leading-none mb-1">{p.nome}</p>
-                    <p className="text-lg font-black text-gray-800">{formatCurrency(p.preco)}</p>
+                    <p className="text-lg font-black text-gray-800">{formatCurrency(p.receitaGerada)}</p>
+                    <span className="text-[9px] text-gray-400 font-bold uppercase">Preço: {formatCurrency(p.preco)}</span>
                   </div>
-                  <div className="text-right">
-                    <p className="text-[9px] font-black text-gray-300 uppercase tracking-widest mb-1">Margem Unitária</p>
-                    <span className="bg-green-50 text-green-600 text-[10px] font-black px-3 py-1 rounded-full border border-green-100">
-                      {(((p.preco - (p.custo || 0)) / p.preco) * 100).toFixed(0)}%
+                  <div className="text-right flex flex-col items-end gap-1">
+                    <span className={`text-[10px] font-black px-3 py-1 rounded-full border ${
+                        p.qtdVendida > 0 ? 'bg-[#FF9800]/10 text-[#FF9800] border-[#FF9800]/20' : 'bg-gray-50 text-gray-300 border-gray-100'
+                    }`}>
+                      {p.qtdVendida} vendas
                     </span>
+                    {p.custo > 0 && (
+                        <span className="text-[9px] text-green-500 font-bold">
+                            Lucro: {formatCurrency(p.receitaGerada - (p.custo * p.qtdVendida))}
+                        </span>
+                    )}
                   </div>
                 </div>
               ))}
+              {desempenhoReal?.length === 0 && (
+                  <p className="text-center text-gray-400 text-xs py-4">Nenhum produto cadastrado.</p>
+              )}
            </div>
         </section>
 
