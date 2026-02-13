@@ -138,38 +138,27 @@ function App() {
     return <PricingPage onSelectPlan={handleSelectPlan} />;
   }
 
-  // Se o pagamento estiver pendente, mostrar uma versão limitada ou aviso
-  // ADMIN BYPASS: Se for o admin, ignora status pendente
+  // Validação de Status e Expiração
   const isAdmin = session.user.email === 'msjtec12@gmail.com' || profile.role === 'admin';
+  const isExpired = profile.subscription_expires_at ? new Date(profile.subscription_expires_at) < new Date() : false;
   
+  // Se está expirado (seja trial ou pago), manda para pagamento
+  // Admin nunca expira
+  if (isExpired && !isAdmin) {
+    return <PricingPage onSelectPlan={handleSelectPlan} />;
+  }
+
+  // Se o status for 'pending' (foi para análise mas não é trial), bloqueia
   if (profile.subscription_status === 'pending' && !isAdmin) {
     return (
       <div className="min-h-screen bg-[#FAFAFA] flex flex-col items-center justify-center p-8 text-center font-['Outfit']">
+        {/* ... PWA Banner Logic ... */}
         {!isOnline && (
           <div className="bg-red-500 text-white text-center py-2 text-xs font-bold fixed top-0 w-full z-50 flex items-center justify-center gap-2 shadow-md">
             <WifiOff size={14} /> MODO OFFLINE - VENDAS SALVAS NO DISPOSITIVO
           </div>
         )}
         
-        {deferredPrompt && (
-          <div className="fixed bottom-4 left-4 right-4 z-[60] animate-bounce-slow">
-            <button 
-              onClick={handleInstallClick}
-              className="w-full bg-white text-gray-900 p-4 rounded-2xl shadow-2xl border-2 border-[#4CAF50] flex items-center justify-between"
-            >
-              <div className="flex items-center gap-3">
-                <div className="bg-[#4CAF50] p-2 rounded-xl text-white">
-                  <Download size={24} />
-                </div>
-                <div className="text-left">
-                  <p className="font-black text-xs uppercase tracking-widest text-[#4CAF50]">Disponível Offline</p>
-                  <p className="font-bold text-sm">Instalar App ContaFeira</p>
-                </div>
-              </div>
-              <span className="bg-gray-100 px-3 py-1 rounded-lg text-xs font-bold text-gray-500">GRÁTIS</span>
-            </button>
-          </div>
-        )}
         <div className="w-20 h-20 bg-orange-100 rounded-full flex items-center justify-center text-orange-500 mb-6 animate-pulse">
           <Shield size={40} />
         </div>
@@ -181,7 +170,7 @@ function App() {
           onClick={() => fetchProfile(session.user.id)}
           className="w-full max-w-xs py-5 bg-[#4CAF50] text-white rounded-[2rem] font-black shadow-lg shadow-[#4CAF50]/20 active:scale-95 transition-all uppercase tracking-widest text-sm"
         >
-          Atualizar Status
+          Verificar Novamente
         </button>
         <button 
           onClick={() => supabase.auth.signOut()}
@@ -193,7 +182,7 @@ function App() {
     );
   }
 
-  if (profile.subscription_status === 'expired') {
+  if (profile.subscription_status === 'expired' && !isAdmin) {
     return <PricingPage onSelectPlan={handleSelectPlan} />;
   }
 
@@ -213,6 +202,12 @@ function App() {
             <WifiOff size={14} />
             <span>Modo Offline - Vendas salvas no dispositivo</span>
           </div>
+        </div>
+      )}
+
+      {profile.subscription_status === 'trial' && !isExpired && (
+        <div className="fixed top-0 left-0 w-full z-[100] bg-yellow-400 text-yellow-900 py-1 px-4 text-center text-[10px] font-black uppercase tracking-widest shadow-sm">
+           Teste Grátis: Restam {Math.ceil((new Date(profile.subscription_expires_at) - new Date()) / (1000 * 60 * 60 * 24))} dias
         </div>
       )}
 
