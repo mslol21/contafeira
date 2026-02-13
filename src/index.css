@@ -12,14 +12,17 @@
   --logo-yellow: #FFEB3B;
 }
 
-@media (prefers-color-scheme: dark) {
-  :root {
-    --primary: #66BB6A;
-    --secondary: #FFA726;
-    --accent: #FFF176;
-    --background: #121212;
-    --text: #F5F5F5;
-  }
+/* Mantemos o tema fixo para garantir a identidade visual da feira (verde/laranja) */
+:root {
+  --primary: #4CAF50;
+  --secondary: #FF9800;
+  --accent: #FFEB3B;
+  --background: #FAFAFA;
+  --text: #1A1A1A;
+  
+  --logo-green: #4CAF50;
+  --logo-orange: #FF9800;
+  --logo-yellow: #FFEB3B;
 }
 
 body {
