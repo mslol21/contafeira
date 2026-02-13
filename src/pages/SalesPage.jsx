@@ -3,10 +3,10 @@ import { useLiveQuery } from 'dexie-react-hooks';
 import { db } from '../db/db';
 import { supabase } from '../lib/supabase';
 import { useVendas } from '../hooks/useVendas';
-import { CreditCard, Banknote, History, LogOut, TrendingUp, DollarSign, PieChart, Share2, CheckCircle2, AlertTriangle, Layers } from 'lucide-react';
+import { CreditCard, Banknote, History, LogOut, TrendingUp, DollarSign, PieChart, Share2, CheckCircle2, AlertTriangle, Layers, X, ArrowRight } from 'lucide-react';
 
 export default function SalesPage({ onShowHistory, onShowDashboard }) {
-  const { stats, registrarVenda, encerrarDia } = useVendas();
+  const { stats, registrarVenda, encerrarDia, vendasHoje } = useVendas();
   const produtos = useLiveQuery(() => db.produtos.toArray());
   const [selectedProduct, setSelectedProduct] = useState(null);
   const [quantidade, setQuantidade] = useState(1);
@@ -14,8 +14,10 @@ export default function SalesPage({ onShowHistory, onShowDashboard }) {
   const [clienteTelefone, setClienteTelefone] = useState('');
   const [filterCategory, setFilterCategory] = useState('Todas');
   const [lastSale, setLastSale] = useState(null);
+  const [showDailyHistory, setShowDailyHistory] = useState(false);
   
-  const categories = ['Todas', 'Baixo Estoque', ...new Set(produtos?.map(p => p.categoria || 'Geral'))];
+  // Filtra 'Geral' da lista para substituir pelo botão de histórico
+  const categories = ['Todas', 'Baixo Estoque', ...new Set(produtos?.map(p => p.categoria || 'Geral').filter(c => c !== 'Geral'))];
 
   const handleProductClick = (produto) => {
     setSelectedProduct(produto);
@@ -143,8 +145,8 @@ export default function SalesPage({ onShowHistory, onShowDashboard }) {
         </div>
       </div>
 
-      {/* Category Filter - Only shows if there are multiple categories */}
-      {categories.length > 2 && (
+      {/* Category Filter and Daily History Button */}
+      {categories.length >= 2 && (
         <div className="px-6 pt-6 overflow-x-auto whitespace-nowrap scrollbar-hide flex gap-2">
           {categories.map(cat => (
             <button
@@ -159,6 +161,67 @@ export default function SalesPage({ onShowHistory, onShowDashboard }) {
               {cat === 'Baixo Estoque' ? <span className="flex items-center gap-1"><AlertTriangle size={12}/> {cat}</span> : cat}
             </button>
           ))}
+          
+          <button
+            onClick={() => setShowDailyHistory(true)}
+            className="px-4 py-2 rounded-full text-[10px] font-black uppercase tracking-widest transition-all bg-white text-gray-400 border border-gray-100 flex items-center gap-1 hover:bg-[#4CAF50] hover:text-white"
+          >
+             <History size={12} /> Histórico Hoje ({stats.numVendas})
+          </button>
+        </div>
+      )}
+
+      {/* Daily History Modal */}
+      {showDailyHistory && (
+        <div className="fixed inset-0 bg-black/50 z-50 flex items-end sm:items-center justify-center backdrop-blur-sm p-4 animate-in fade-in duration-200">
+           <div className="bg-white w-full max-w-sm rounded-[2.5rem] p-6 h-[80vh] flex flex-col shadow-2xl animate-in slide-in-from-bottom duration-300">
+              <div className="flex items-center justify-between mb-6 pb-4 border-b border-gray-100">
+                 <h3 className="text-xl font-black text-gray-800 flex items-center gap-2">
+                    <History size={24} className="text-[#4CAF50]" />
+                    Vendas de Hoje
+                 </h3>
+                 <button 
+                   onClick={() => setShowDailyHistory(false)}
+                   className="p-2 bg-gray-50 rounded-full text-gray-400 hover:bg-gray-100"
+                 >
+                    <X size={20} />
+                 </button>
+              </div>
+
+              <div className="flex-1 overflow-y-auto space-y-3 pr-2">
+                 {vendasHoje && vendasHoje.length > 0 ? (
+                    vendasHoje.slice().reverse().map((venda) => (
+                       <div key={venda.id} className="bg-gray-50 p-4 rounded-[1.5rem] flex justify-between items-center">
+                          <div>
+                             <p className="font-bold text-gray-800 text-sm">{venda.nomeProduto}</p>
+                             <div className="flex items-center gap-2 mt-1">
+                                <span className={`text-[9px] font-black uppercase px-2 py-0.5 rounded-md ${
+                                   venda.formaPagamento === 'pix' ? 'bg-[#4CAF50]/10 text-[#4CAF50]' :
+                                   venda.formaPagamento === 'dinheiro' ? 'bg-[#FF9800]/10 text-[#FF9800]' :
+                                   venda.formaPagamento === 'fiado' ? 'bg-gray-200 text-gray-500' : 'bg-blue-100 text-blue-500'
+                                }`}>
+                                   {venda.formaPagamento}
+                                </span>
+                                <span className="text-[10px] text-gray-400 font-bold">{venda.hora}</span>
+                             </div>
+                             {venda.cliente && (
+                                <p className="text-[10px] text-gray-400 mt-1 font-bold">Cli: {venda.cliente}</p>
+                             )}
+                          </div>
+                          <div className="text-right">
+                             <p className="font-black text-gray-800">{formatCurrency(venda.valor)}</p>
+                             <p className="text-[9px] text-gray-400 font-bold">x{venda.quantidade}</p>
+                          </div>
+                       </div>
+                    ))
+                 ) : (
+                    <div className="flex flex-col items-center justify-center h-full text-center opacity-50">
+                       <History size={48} className="mb-2 text-gray-300" />
+                       <p className="font-bold text-gray-400">Nenhuma venda hoje ainda.</p>
+                    </div>
+                 )}
+              </div>
+           </div>
         </div>
       )}
 
