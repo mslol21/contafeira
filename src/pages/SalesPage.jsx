@@ -215,7 +215,18 @@ export default function SalesPage({ onShowHistory, onShowDashboard }) {
         {lastSale && (
           <div className="bg-white p-5 rounded-[2.5rem] shadow-lg border border-[#4CAF50]/20 flex flex-col gap-3 animate-in slide-in-from-top">
             <div className="flex items-center gap-3"><CheckCircle2 className="text-[#4CAF50]" size={28} /><div><p className="text-[10px] font-black text-[#4CAF50] uppercase tracking-widest">Sucesso!</p><p className="font-bold text-sm">{lastSale.nome} ({formatCurrency(lastSale.total)})</p></div></div>
-            <div className="flex gap-2"><input type="tel" placeholder="Telefone Cliente" className="flex-1 p-3 bg-gray-50 rounded-xl text-xs font-bold" value={clienteTelefone} onChange={(e) => setClienteTelefone(e.target.value)} /><button onClick={shareReceipt} className="bg-[#4CAF50] text-white px-4 rounded-xl shadow-lg flex items-center gap-2"><Share2 size={18} /></button></div>
+            <div className="flex gap-2">
+              <input 
+                type="tel" 
+                placeholder="Telefone Cliente" 
+                className="flex-1 p-3 bg-gray-50 rounded-xl text-xs font-bold text-gray-900 placeholder:text-gray-400" 
+                value={clienteTelefone} 
+                onChange={(e) => setClienteTelefone(e.target.value)} 
+              />
+              <button onClick={shareReceipt} className="bg-[#4CAF50] text-white px-4 rounded-xl shadow-lg flex items-center gap-2">
+                <Share2 size={18} />
+              </button>
+            </div>
           </div>
         )}
 
@@ -252,13 +263,19 @@ export default function SalesPage({ onShowHistory, onShowDashboard }) {
                 <button onClick={() => setQuantidade(quantidade + 1)} className="w-12 h-12 rounded-full shadow-md text-3xl font-black text-[#4CAF50]">+</button>
               </div>
 
-              <input type="text" placeholder="Nome do Cliente" className="w-full p-4 bg-gray-50 rounded-2xl text-center font-bold mb-6" value={cliente} onChange={(e) => setCliente(e.target.value)} />
+              <input 
+                type="text" 
+                placeholder="Nome do Cliente" 
+                className="w-full p-4 bg-gray-50 rounded-2xl text-center font-bold mb-6 text-gray-900 placeholder:text-gray-300" 
+                value={cliente} 
+                onChange={(e) => setCliente(e.target.value)} 
+              />
 
               <div className="grid grid-cols-2 gap-3">
-                <button onClick={() => handlePayment('pix')} className="bg-[#4CAF50] text-white font-black py-4 rounded-2xl">PIX</button>
-                <button onClick={() => handlePayment('dinheiro')} className="bg-[#FF9800] text-white font-black py-4 rounded-2xl">Dinheiro</button>
-                <button onClick={() => handlePayment('cartao')} className="bg-blue-500 text-white font-black py-4 rounded-2xl">Cartão</button>
-                <button onClick={() => handlePayment('fiado')} className="border-2 border-dashed border-gray-300 font-black py-4 rounded-2xl text-gray-400">Fiado</button>
+                <button onClick={() => handlePayment('pix')} className="bg-[#4CAF50] text-white font-black py-4 rounded-2xl active:scale-95 transition-all">PIX</button>
+                <button onClick={() => handlePayment('dinheiro')} className="bg-[#FF9800] text-white font-black py-4 rounded-2xl active:scale-95 transition-all">Dinheiro</button>
+                <button onClick={() => handlePayment('cartao')} className="bg-blue-500 text-white font-black py-4 rounded-2xl active:scale-95 transition-all">Cartão</button>
+                <button onClick={() => handlePayment('fiado')} className="border-2 border-dashed border-gray-300 font-black py-4 rounded-2xl text-gray-400 active:scale-95 transition-all">Fiado</button>
               </div>
               <button onClick={() => setSelectedProduct(null)} className="mt-6 text-gray-300 font-black uppercase tracking-widest text-[10px]">Cancelar</button>
             </div>

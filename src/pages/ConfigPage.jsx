@@ -80,9 +80,9 @@ export default function ConfigPage() {
       )}
 
       <header className="text-center mb-10 pt-4 relative">
-        <button onClick={handleLogout} className="absolute top-4 right-0 p-2 text-red-300 hover:text-red-500"><LogOut size={20}/></button>
-        <div className="flex justify-center mb-4">
-          <img src="/logo.png" alt="Logo" className="w-48 h-auto drop-shadow-xl" />
+        <button onClick={handleLogout} className="absolute top-4 right-0 p-2 text-red-400 hover:text-red-500"><LogOut size={20}/></button>
+        <div className="flex justify-center mb-4 text-white">
+           <Store size={48} className="text-[#4CAF50]" />
         </div>
         <p className="text-[10px] font-black text-gray-400 uppercase tracking-[0.3em]">Configuração de Inventário</p>
         {!isPro && (
@@ -101,7 +101,7 @@ export default function ConfigPage() {
           <input
             type="text"
             required
-            className="w-full p-4 bg-gray-50 rounded-2xl font-bold text-lg outline-none focus:ring-2 focus:ring-[#4CAF50]/20"
+            className="w-full p-4 bg-gray-50 rounded-2xl font-bold text-lg outline-none focus:ring-2 focus:ring-[#4CAF50]/20 text-gray-900 placeholder:text-gray-300"
             placeholder="Minha Lojinha"
             value={nomeBarraca}
             onChange={(e) => setNomeBarraca(e.target.value)}
@@ -120,28 +120,60 @@ export default function ConfigPage() {
                
                <div className="pr-10">
                  <p className="text-[9px] font-black text-gray-400 uppercase tracking-widest mb-1">Produto #{index+1}</p>
-                 <input type="text" required placeholder="Ex: Pastel de Carne" className="w-full p-3 bg-gray-50 rounded-xl font-black text-gray-800" value={p.nome} onChange={(e) => updateProduto(p.id, 'nome', e.target.value)} />
+                 <input 
+                    type="text" 
+                    required 
+                    placeholder="Ex: Pastel de Carne" 
+                    className="w-full p-3 bg-gray-50 rounded-xl font-black text-gray-900 placeholder:text-gray-300" 
+                    value={p.nome} 
+                    onChange={(e) => updateProduto(p.id, 'nome', e.target.value)} 
+                 />
                </div>
 
                <div className="grid grid-cols-2 gap-3">
                  <div>
                    <p className="text-[9px] font-black text-gray-400 uppercase tracking-widest mb-1">Preço Venda</p>
-                   <input type="number" step="0.01" required placeholder="R$ 0,00" className="w-full p-3 bg-gray-50 rounded-xl font-bold text-orange-500" value={p.preco} onChange={(e) => updateProduto(p.id, 'preco', e.target.value)} />
+                   <input 
+                    type="number" 
+                    step="0.01" 
+                    required 
+                    placeholder="R$ 0,00" 
+                    className="w-full p-3 bg-gray-50 rounded-xl font-bold text-orange-500 placeholder:text-orange-200" 
+                    value={p.preco} 
+                    onChange={(e) => updateProduto(p.id, 'preco', e.target.value)} 
+                   />
                  </div>
                  <div>
                    <p className="text-[9px] font-black text-gray-400 uppercase tracking-widest mb-1">Custo (Opcional)</p>
-                   <input type="number" step="0.01" placeholder="R$ 0,00" className="w-full p-3 bg-gray-50 rounded-xl font-bold text-red-400" value={p.custo} onChange={(e) => updateProduto(p.id, 'custo', e.target.value)} />
+                   <input 
+                    type="number" 
+                    step="0.01" 
+                    placeholder="R$ 0,00" 
+                    className="w-full p-3 bg-gray-50 rounded-xl font-bold text-red-500 placeholder:text-red-200" 
+                    value={p.custo} 
+                    onChange={(e) => updateProduto(p.id, 'custo', e.target.value)} 
+                   />
                  </div>
                </div>
 
                <div className="grid grid-cols-2 gap-3">
                  <div>
                    <p className="text-[9px] font-black text-gray-400 uppercase tracking-widest mb-1">Estoque</p>
-                   <input type="number" placeholder="0" className="w-full p-3 bg-gray-50 rounded-xl font-bold" value={p.estoque} onChange={(e) => updateProduto(p.id, 'estoque', e.target.value)} />
+                   <input 
+                    type="number" 
+                    placeholder="0" 
+                    className="w-full p-3 bg-gray-50 rounded-xl font-bold text-gray-900 placeholder:text-gray-300" 
+                    value={p.estoque} 
+                    onChange={(e) => updateProduto(p.id, 'estoque', e.target.value)} 
+                   />
                  </div>
                  <div>
                    <p className="text-[9px] font-black text-gray-400 uppercase tracking-widest mb-1">Categoria</p>
-                   <select className="w-full p-3 bg-gray-50 rounded-xl font-bold text-sm" value={p.categoria} onChange={(e) => updateProduto(p.id, 'categoria', e.target.value)}>
+                   <select 
+                    className="w-full p-3 bg-gray-50 rounded-xl font-bold text-sm text-gray-900" 
+                    value={p.categoria} 
+                    onChange={(e) => updateProduto(p.id, 'categoria', e.target.value)}
+                   >
                      <option value="Geral">Geral</option>
                      <option value="Comida">Comida</option>
                      <option value="Bebida">Bebida</option>
