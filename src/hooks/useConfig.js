@@ -7,7 +7,8 @@ export function useConfig() {
   const isConfigured = config?.length > 0;
   
   const saveConfig = async (nomeBarraca, produtos) => {
-    const { data: { user } } = await supabase.auth.getUser();
+    const { data: { session } } = await supabase.auth.getSession();
+    const user = session?.user;
     if (!user) return;
 
     await db.configuracao.clear();

@@ -11,7 +11,8 @@ export function useVendas() {
   );
 
   const registrarVenda = async (produto, formaPagamento, quantidade = 1, cliente = null) => {
-    const { data: { user } } = await supabase.auth.getUser();
+    const { data: { session } } = await supabase.auth.getSession();
+    const user = session?.user;
     if (!user) return;
 
     const venda = {
@@ -40,7 +41,8 @@ export function useVendas() {
 
   const encerrarDia = async () => {
     if (!vendasHoje || vendasHoje.length === 0) return;
-    const { data: { user } } = await supabase.auth.getUser();
+    const { data: { session } } = await supabase.auth.getSession();
+    const user = session?.user;
     if (!user) return;
 
     const total = vendasHoje.reduce((acc, v) => acc + v.valor, 0);

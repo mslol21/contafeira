@@ -140,8 +140,14 @@ function App() {
 
   // Validação de Status e Expiração
   const isAdmin = session.user.email === 'msjtec12@gmail.com' || profile.role === 'admin';
-  const isExpired = profile.subscription_expires_at ? new Date(profile.subscription_expires_at) < new Date() : false;
+  // Check if actually expired based on status OR date if trial
+  const isExpired = profile.subscription_status === 'expired' || 
+    (profile.subscription_status === 'trial' && profile.subscription_expires_at && new Date(profile.subscription_expires_at) < new Date());
+
+  console.log('Profile Status:', profile.subscription_status, 'Expired:', isExpired);
   
+  // Se está expirado (seja trial ou pago), manda para pagamento
+  // Admin nunca expira
   // Se está expirado (seja trial ou pago), manda para pagamento
   // Admin nunca expira
   if (isExpired && !isAdmin) {
