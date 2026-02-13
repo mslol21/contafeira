@@ -1,7 +1,7 @@
 import React, { useState } from 'react';
 import { v4 as uuidv4 } from 'uuid';
 import { useConfig } from '../hooks/useConfig';
-import { Plus, Trash2, Store, Package, Tag } from 'lucide-react';
+import { Plus, Trash2, Store, Package, Tag, LogOut } from 'lucide-react';
 
 export default function ConfigPage() {
   const { saveConfig } = useConfig();
@@ -58,7 +58,20 @@ export default function ConfigPage() {
 
   return (
     <div className="max-w-md mx-auto p-6 fade-in pb-24">
-      <header className="text-center mb-8 pt-4">
+      <header className="text-center mb-8 pt-4 relative">
+        <div className="absolute top-0 right-0">
+            <button 
+              onClick={() => {
+                import('../lib/supabase').then(({ supabase }) => {
+                  supabase.auth.signOut().then(() => window.location.reload());
+                });
+              }}
+              className="p-2 text-red-300 hover:text-red-500 transition-colors"
+              title="Sair"
+            >
+              <LogOut size={20} />
+            </button>
+        </div>
         <div className="flex items-center justify-center mb-4">
           <img src="/logo.png" alt="ContaFeira Logo" className="w-56 h-auto drop-shadow-xl" />
         </div>
