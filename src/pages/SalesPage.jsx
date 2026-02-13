@@ -11,6 +11,7 @@ export default function SalesPage({ onShowHistory, onShowDashboard }) {
   const [selectedProduct, setSelectedProduct] = useState(null);
   const [quantidade, setQuantidade] = useState(1);
   const [cliente, setCliente] = useState('');
+  const [clienteTelefone, setClienteTelefone] = useState('');
   const [filterCategory, setFilterCategory] = useState('Todas');
   const [lastSale, setLastSale] = useState(null);
   
@@ -20,6 +21,7 @@ export default function SalesPage({ onShowHistory, onShowDashboard }) {
     setSelectedProduct(produto);
     setQuantidade(1);
     setCliente('');
+    setClienteTelefone('');
     setLastSale(null);
   };
 
@@ -52,7 +54,17 @@ export default function SalesPage({ onShowHistory, onShowDashboard }) {
     }
 
     text += `\n--------------------------\nObrigado pela preferência! 🍎`;
-    window.open(`https://api.whatsapp.com/send?text=${encodeURIComponent(text)}`);
+
+    let url = '';
+    if (clienteTelefone) {
+        // Remove chars não numéricos
+        const phone = clienteTelefone.replace(/\D/g, '');
+        url = `https://wa.me/55${phone}?text=${encodeURIComponent(text)}`;
+    } else {
+        url = `https://api.whatsapp.com/send?text=${encodeURIComponent(text)}`;
+    }
+    
+    window.open(url);
   };
 
   const handleEncerrar = async () => {
@@ -154,23 +166,35 @@ export default function SalesPage({ onShowHistory, onShowDashboard }) {
       <div className="flex-1 overflow-y-auto p-6 space-y-5">
         {lastSale && (
           <div className="bg-white p-5 rounded-[2.5rem] shadow-lg border border-[#4CAF50]/20 flex items-center justify-between fade-in bg-gradient-to-r from-white to-[#4CAF50]/5">
-            <div className="flex items-center gap-3">
-              <CheckCircle2 className="text-[#4CAF50]" size={28} />
-              <div>
-                <p className="text-[10px] font-black text-[#4CAF50] uppercase tracking-widest">
-                  {lastSale.forma === 'fiado' ? 'Marcado na Caderneta!' : 'Venda Realizada!'}
-                </p>
-                <p className="font-bold text-gray-800">{lastSale.nome} ({formatCurrency(lastSale.total)})</p>
-                {lastSale.cliente && <p className="text-[10px] text-gray-400 font-bold uppercase">Cliente: {lastSale.cliente}</p>}
+            <div className="flex flex-col gap-3 w-full">
+              <div className="flex items-center gap-3">
+                <CheckCircle2 className="text-[#4CAF50]" size={28} />
+                <div>
+                  <p className="text-[10px] font-black text-[#4CAF50] uppercase tracking-widest">
+                    {lastSale.forma === 'fiado' ? 'Marcado na Caderneta!' : 'Venda Realizada!'}
+                  </p>
+                  <p className="font-bold text-gray-800 text-sm">{lastSale.nome} ({formatCurrency(lastSale.total)})</p>
+                  {lastSale.cliente && <p className="text-[10px] text-gray-400 font-bold uppercase">Cliente: {lastSale.cliente}</p>}
+                </div>
+              </div>
+
+              <div className="flex gap-2">
+                 <input 
+                    type="tel" 
+                    placeholder="DDD + Telefone (Opcional)"
+                    className="flex-1 p-3 bg-gray-50 border-none rounded-xl text-xs font-bold text-gray-900 focus:ring-2 focus:ring-[#4CAF50] outline-none"
+                    value={clienteTelefone}
+                    onChange={(e) => setClienteTelefone(e.target.value)}
+                 />
+                <button 
+                  onClick={shareReceipt}
+                  className="bg-[#4CAF50] text-white px-4 rounded-xl shadow-lg shadow-[#4CAF50]/20 active:scale-90 transition-all flex items-center gap-2"
+                >
+                  <Share2 size={18} />
+                  <span className="text-[10px] font-black uppercase tracking-widest hidden sm:inline">Enviar</span>
+                </button>
               </div>
             </div>
-            <button 
-              onClick={shareReceipt}
-              className="bg-[#4CAF50] text-white p-3 rounded-2xl shadow-lg shadow-[#4CAF50]/20 active:scale-90 transition-all flex items-center gap-2"
-            >
-              <Share2 size={20} />
-              <span className="text-[10px] font-black uppercase tracking-widest">Enviar</span>
-            </button>
           </div>
         )}
 
