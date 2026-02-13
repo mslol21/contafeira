@@ -80,6 +80,21 @@ export function useVendas() {
     await db.vendas.where('data').equals(today).delete();
   };
 
+  const cancelarVenda = async (vendaId) => {
+    const venda = await db.vendas.get(vendaId);
+    if (!venda) return;
+    
+    // Devolver ao estoque
+    const produto = await db.produtos.where('nome').equals(venda.nomeProduto).first();
+    if (produto && produto.estoque !== null) {
+        await db.produtos.update(produto.id, {
+            estoque: produto.estoque + venda.quantidade
+        });
+    }
+
+    await db.vendas.delete(vendaId);
+  };
+
   const stats = {
     total: vendasHoje?.reduce((acc, v) => acc + v.valor, 0) || 0,
     totalPix: vendasHoje?.filter(v => v.formaPagamento === 'pix').reduce((acc, v) => acc + v.valor, 0) || 0,
@@ -92,6 +107,7 @@ export function useVendas() {
   return {
     vendasHoje,
     registrarVenda,
+    cancelarVenda,
     encerrarDia,
     stats
   };

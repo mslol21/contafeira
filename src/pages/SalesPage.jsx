@@ -3,10 +3,10 @@ import { useLiveQuery } from 'dexie-react-hooks';
 import { db } from '../db/db';
 import { supabase } from '../lib/supabase';
 import { useVendas } from '../hooks/useVendas';
-import { CreditCard, Banknote, History, LogOut, TrendingUp, DollarSign, PieChart, Share2, CheckCircle2, AlertTriangle, Layers, X, ArrowRight } from 'lucide-react';
+import { CreditCard, Banknote, History, LogOut, TrendingUp, DollarSign, PieChart, Share2, CheckCircle2, AlertTriangle, Layers, X, ArrowRight, Trash2 } from 'lucide-react';
 
 export default function SalesPage({ onShowHistory, onShowDashboard }) {
-  const { stats, registrarVenda, encerrarDia, vendasHoje } = useVendas();
+  const { stats, registrarVenda, cancelarVenda, encerrarDia, vendasHoje } = useVendas();
   const produtos = useLiveQuery(() => db.produtos.toArray());
   const [selectedProduct, setSelectedProduct] = useState(null);
   const [quantidade, setQuantidade] = useState(1);
@@ -25,6 +25,12 @@ export default function SalesPage({ onShowHistory, onShowDashboard }) {
     setCliente('');
     setClienteTelefone('');
     setLastSale(null);
+  };
+  
+  const handleCancelarVenda = async (vendaId) => {
+    if (confirm('Tem certeza que deseja cancelar esta venda? O valor será estornado do caixa e o produto devolvido ao estoque.')) {
+        await cancelarVenda(vendaId);
+    }
   };
 
   const handlePayment = async (forma) => {
@@ -208,9 +214,18 @@ export default function SalesPage({ onShowHistory, onShowDashboard }) {
                                 <p className="text-[10px] text-gray-400 mt-1 font-bold">Cli: {venda.cliente}</p>
                              )}
                           </div>
-                          <div className="text-right">
+                          <div className="text-right flex flex-col items-end gap-1">
                              <p className="font-black text-gray-800">{formatCurrency(venda.valor)}</p>
-                             <p className="text-[9px] text-gray-400 font-bold">x{venda.quantidade}</p>
+                             <div className="flex items-center gap-2">
+                                <p className="text-[9px] text-gray-400 font-bold">x{venda.quantidade}</p>
+                                <button 
+                                    onClick={() => handleCancelarVenda(venda.id)}
+                                    className="p-1.5 bg-red-50 text-red-500 rounded-lg hover:bg-red-100 transition-colors"
+                                    title="Cancelar Venda"
+                                >
+                                    <Trash2 size={14} />
+                                </button>
+                             </div>
                           </div>
                        </div>
                     ))
