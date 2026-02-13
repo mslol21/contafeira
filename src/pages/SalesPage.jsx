@@ -11,6 +11,8 @@ export default function SalesPage({ onShowHistory, onShowDashboard }) {
   const [selectedProduct, setSelectedProduct] = useState(null);
   const [quantidade, setQuantidade] = useState(1);
   const [cliente, setCliente] = useState('');
+  const [filterCategory, setFilterCategory] = useState('Todas');
+  const [lastSale, setLastSale] = useState(null);
   
   const categories = ['Todas', 'Baixo Estoque', ...new Set(produtos?.map(p => p.categoria || 'Geral'))];
 
