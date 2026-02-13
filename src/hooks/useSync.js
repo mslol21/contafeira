@@ -131,9 +131,39 @@ export function useSync() {
         })));
       }
 
-      // Vendas (Traz vendas recentes/todas? Cuidado com volume. Trazemos últimas 1000 ou do dia?)
-      // Para consistência de caixa, é bom trazer do dia ou mês. Vamos trazer todas por enquanto (volume baixo esperado).
-      // Se volume alto, filtrar por data > lastSync.
+      // Vendas
+      const { data: serverVendas } = await supabase.from('vendas').select('*').eq('user_id', user.id);
+      if (serverVendas) {
+        await db.vendas.bulkPut(serverVendas.map(v => ({
+           id: v.id,
+           nomeProduto: v.nome_produto,
+           valor: v.valor,
+           quantidade: v.quantidade,
+           formaPagamento: v.forma_pagamento,
+           cliente: v.cliente,
+           data: v.data,
+           hora: v.hora,
+           user_id: v.user_id,
+           synced: 1
+        })));
+      }
+
+      // Resumos
+      const { data: serverResumos } = await supabase.from('resumos').select('*').eq('user_id', user.id);
+      if (serverResumos) {
+        await db.resumos.bulkPut(serverResumos.map(r => ({
+           id: r.id,
+           data: r.data,
+           total: r.total,
+           totalPix: r.total_pix,
+           totalDinheiro: r.total_dinheiro,
+           totalCartao: r.total_cartao,
+           quantidadeVendas: r.quantidade_vendas,
+           totalCustos: r.total_custos || 0,
+           user_id: r.user_id,
+           synced: 1
+        })));
+      }
       
       console.log('Sincronização bidirecional concluída!');
     } catch (err) {
