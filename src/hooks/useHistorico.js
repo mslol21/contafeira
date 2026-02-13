@@ -1,13 +1,24 @@
+import { useState, useEffect } from 'react';
 import { useLiveQuery } from 'dexie-react-hooks';
 import { db } from '../db/db';
+import { supabase } from '../lib/supabase';
 
 export function useHistorico() {
-  const historico = useLiveQuery(() => 
-    db.resumos.orderBy('data').reverse().toArray()
+  const [userId, setUserId] = useState(null);
+
+  useEffect(() => {
+    supabase.auth.getSession().then(({ data: { session } }) => {
+      setUserId(session?.user?.id || null);
+    });
+  }, []);
+
+  const historico = useLiveQuery(
+    () => userId ? db.resumos.where('user_id').equals(userId).reverse().sortBy('data') : [],
+    [userId]
   );
 
   return {
     historico,
-    loading: historico === undefined
+    loading: historico === undefined || (userId === null && !historico)
   };
 }

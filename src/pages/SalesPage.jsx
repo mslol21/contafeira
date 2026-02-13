@@ -30,7 +30,18 @@ function useStickyState(defaultValue, key) {
 
 export default function SalesPage({ onShowHistory, onShowDashboard }) {
   const { stats, registrarVenda, cancelarVenda, encerrarDia, vendasHoje } = useVendas();
-  const produtos = useLiveQuery(() => db.produtos.toArray());
+  
+  const [userId, setUserId] = useState(null);
+  useEffect(() => {
+    supabase.auth.getSession().then(({ data: { session } }) => {
+      setUserId(session?.user?.id || null);
+    });
+  }, []);
+
+  const produtos = useLiveQuery(
+    () => userId ? db.produtos.where('user_id').equals(userId).toArray() : [],
+    [userId]
+  );
 
   // Estados persistentes para não perder dados ao mudar de tela/fechar app
   const [selectedProduct, setSelectedProduct] = useStickyState(null, 'sales_selectedProduct');

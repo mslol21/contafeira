@@ -1,11 +1,32 @@
-import React from 'react';
+import React, { useState, useEffect } from 'react';
 import { useLiveQuery } from 'dexie-react-hooks';
 import { db } from '../db/db';
+import { supabase } from '../lib/supabase';
 import { ArrowLeft, TrendingUp, TrendingDown, DollarSign, Package, PieChart, Download } from 'lucide-react';
 
 export default function DashboardPage({ onBack }) {
-  const resumos = useLiveQuery(() => db.resumos.orderBy('data').reverse().toArray());
-  const produtos = useLiveQuery(() => db.produtos.toArray());
+  const [userId, setUserId] = useState(null);
+
+  useEffect(() => {
+    supabase.auth.getSession().then(({ data: { session } }) => {
+      setUserId(session?.user?.id || null);
+    });
+  }, []);
+
+  const resumos = useLiveQuery(
+    () => userId ? db.resumos.where('user_id').equals(userId).toArray().then(arr => arr.sort((a,b) => b.data.localeCompare(a.data))) : [],
+    [userId]
+  );
+  
+  const produtos = useLiveQuery(
+    () => userId ? db.produtos.where('user_id').equals(userId).toArray() : [],
+    [userId]
+  );
+
+  const vendasHoje = useLiveQuery(
+    () => userId ? db.vendas.where('user_id').equals(userId).toArray() : [],
+    [userId]
+  );
 
   const exportToCSV = () => {
     if (!resumos || resumos.length === 0) return;
@@ -48,7 +69,7 @@ export default function DashboardPage({ onBack }) {
   };
   statsTotal.lucro = statsTotal.receita - statsTotal.custo;
 
-  const vendasHoje = useLiveQuery(() => db.vendas.toArray());
+
 
   // Agrega vendas por produto
   const desempenhoReal = produtos?.map(p => {

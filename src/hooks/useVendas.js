@@ -1,3 +1,4 @@
+import { useState, useEffect } from 'react';
 import { useLiveQuery } from 'dexie-react-hooks';
 import { db } from '../db/db';
 import { v4 as uuidv4 } from 'uuid';
@@ -5,9 +6,17 @@ import { supabase } from '../lib/supabase';
 
 export function useVendas() {
   const today = new Date().toISOString().split('T')[0];
+  const [userId, setUserId] = useState(null);
+
+  useEffect(() => {
+    supabase.auth.getSession().then(({ data: { session } }) => {
+      setUserId(session?.user?.id || null);
+    });
+  }, []);
   
   const vendasHoje = useLiveQuery(() => 
-    db.vendas.where('data').equals(today).toArray()
+    userId ? db.vendas.where({ data: today, user_id: userId }).toArray() : [],
+    [userId, today]
   );
 
   const registrarVenda = async (produto, formaPagamento, quantidade = 1, cliente = null) => {
@@ -57,7 +66,7 @@ export function useVendas() {
       .reduce((acc, v) => acc + v.valor, 0);
 
     // Calculate total costs for the summary
-    const produtos = await db.produtos.toArray();
+    const produtos = await db.produtos.where('user_id').equals(user.id).toArray();
     const totalCustos = vendasHoje.reduce((acc, v) => {
       const prod = produtos.find(p => p.nome === v.nomeProduto);
       return acc + ((prod?.custo || 0) * v.quantidade);
