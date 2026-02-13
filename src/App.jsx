@@ -11,7 +11,7 @@ import PixPayment from './components/PixPayment';
 import { supabase } from './lib/supabase';
 import { useSync } from './hooks/useSync';
 import { useOnlineStatus } from './hooks/useOnlineStatus';
-import { WifiOff, Shield } from 'lucide-react';
+import { WifiOff, Shield, Download } from 'lucide-react';
 
 function App() {
   const { isConfigured, loading: configLoading } = useConfig();
@@ -58,6 +58,29 @@ function App() {
 
     return () => subscription.unsubscribe();
   }, []);
+
+  // PWA Install Prompt Logic
+  const [deferredPrompt, setDeferredPrompt] = useState(null);
+  
+  useEffect(() => {
+    const handler = (e) => {
+      e.preventDefault();
+      setDeferredPrompt(e);
+    };
+    window.addEventListener('beforeinstallprompt', handler);
+    return () => window.removeEventListener('beforeinstallprompt', handler);
+  }, []);
+
+  const handleInstallClick = () => {
+    if (!deferredPrompt) return;
+    deferredPrompt.prompt();
+    deferredPrompt.userChoice.then((choiceResult) => {
+      if (choiceResult.outcome === 'accepted') {
+        console.log('User accepted the install prompt');
+      }
+      setDeferredPrompt(null);
+    });
+  };
 
   const handleSelectPlan = async (plan) => {
     setSelectedPlan(plan);
@@ -122,6 +145,31 @@ function App() {
   if (profile.subscription_status === 'pending' && !isAdmin) {
     return (
       <div className="min-h-screen bg-[#FAFAFA] flex flex-col items-center justify-center p-8 text-center font-['Outfit']">
+        {!isOnline && (
+          <div className="bg-red-500 text-white text-center py-2 text-xs font-bold fixed top-0 w-full z-50 flex items-center justify-center gap-2 shadow-md">
+            <WifiOff size={14} /> MODO OFFLINE - VENDAS SALVAS NO DISPOSITIVO
+          </div>
+        )}
+        
+        {deferredPrompt && (
+          <div className="fixed bottom-4 left-4 right-4 z-[60] animate-bounce-slow">
+            <button 
+              onClick={handleInstallClick}
+              className="w-full bg-white text-gray-900 p-4 rounded-2xl shadow-2xl border-2 border-[#4CAF50] flex items-center justify-between"
+            >
+              <div className="flex items-center gap-3">
+                <div className="bg-[#4CAF50] p-2 rounded-xl text-white">
+                  <Download size={24} />
+                </div>
+                <div className="text-left">
+                  <p className="font-black text-xs uppercase tracking-widest text-[#4CAF50]">Disponível Offline</p>
+                  <p className="font-bold text-sm">Instalar App ContaFeira</p>
+                </div>
+              </div>
+              <span className="bg-gray-100 px-3 py-1 rounded-lg text-xs font-bold text-gray-500">GRÁTIS</span>
+            </button>
+          </div>
+        )}
         <div className="w-20 h-20 bg-orange-100 rounded-full flex items-center justify-center text-orange-500 mb-6 animate-pulse">
           <Shield size={40} />
         </div>
@@ -161,8 +209,30 @@ function App() {
     <div className="min-h-screen bg-[#FAFAFA] relative">
       {!isOnline && (
         <div className="fixed top-0 left-0 w-full z-[110] bg-orange-500 text-white py-2 px-4 flex items-center justify-center gap-2 text-[10px] font-black uppercase tracking-widest shadow-lg animate-in slide-in-from-top duration-300">
-          <WifiOff size={14} />
-          <span>Você está em Modo Offline - As vendas serão salvas localmente</span>
+          <div className="flex items-center gap-2">
+            <WifiOff size={14} />
+            <span>Modo Offline - Vendas salvas no dispositivo</span>
+          </div>
+        </div>
+      )}
+
+      {deferredPrompt && (
+        <div className="fixed bottom-4 left-4 right-4 z-[90] animate-bounce-slow">
+          <button 
+            onClick={handleInstallClick}
+            className="w-full bg-white text-gray-900 p-4 rounded-2xl shadow-2xl border-2 border-[#4CAF50] flex items-center justify-between"
+          >
+            <div className="flex items-center gap-3">
+              <div className="bg-[#4CAF50] p-2 rounded-xl text-white">
+                <Download size={24} />
+              </div>
+              <div className="text-left">
+                <p className="font-black text-xs uppercase tracking-widest text-[#4CAF50]">Disponível Offline</p>
+                <p className="font-bold text-sm">Instalar App ContaFeira</p>
+              </div>
+            </div>
+            <span className="bg-gray-100 px-3 py-1 rounded-lg text-xs font-bold text-gray-500">GRÁTIS</span>
+          </button>
         </div>
       )}
 

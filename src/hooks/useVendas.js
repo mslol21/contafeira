@@ -10,7 +10,7 @@ export function useVendas() {
     db.vendas.where('data').equals(today).toArray()
   );
 
-  const registrarVenda = async (produto, formaPagamento, quantidade = 1) => {
+  const registrarVenda = async (produto, formaPagamento, quantidade = 1, cliente = null) => {
     const { data: { user } } = await supabase.auth.getUser();
     if (!user) return;
 
@@ -20,6 +20,7 @@ export function useVendas() {
       valor: produto.preco * quantidade,
       quantidade,
       formaPagamento,
+      cliente,
       data: today,
       hora: new Date().toLocaleTimeString('pt-BR', { hour: '2-digit', minute: '2-digit' }),
       user_id: user.id,

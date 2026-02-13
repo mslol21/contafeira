@@ -60,6 +60,7 @@ export function useSync() {
           valor: v.valor,
           quantidade: v.quantidade,
           forma_pagamento: v.formaPagamento,
+          cliente: v.cliente,
           data: v.data,
           hora: v.hora,
           user_id: user.id
@@ -92,7 +93,31 @@ export function useSync() {
       }
 
       setLastSync(new Date());
-      console.log('Sincronização concluída com sucesso!');
+      console.log('Upload concluído, verificando atualizações do servidor...');
+
+      // 5. DOWNLOAD (Sync Down) - Traz dados do servidor para o local
+      // Produtos
+      const { data: serverProdutos } = await supabase.from('produtos').select('*').eq('user_id', user.id);
+      if (serverProdutos) {
+        await db.produtos.bulkPut(serverProdutos.map(p => ({ ...p, synced: 1 })));
+      }
+
+      // Configuração
+      const { data: serverConfig } = await supabase.from('configuracao').select('*').eq('user_id', user.id);
+      if (serverConfig) {
+        await db.configuracao.bulkPut(serverConfig.map(c => ({
+           id: c.id, 
+           nomeBarraca: c.nome_barraca, 
+           synced: 1, 
+           user_id: c.user_id 
+        })));
+      }
+
+      // Vendas (Traz vendas recentes/todas? Cuidado com volume. Trazemos últimas 1000 ou do dia?)
+      // Para consistência de caixa, é bom trazer do dia ou mês. Vamos trazer todas por enquanto (volume baixo esperado).
+      // Se volume alto, filtrar por data > lastSync.
+      
+      console.log('Sincronização bidirecional concluída!');
     } catch (err) {
       console.error('Erro na sincronização:', err);
     } finally {

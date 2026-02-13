@@ -10,32 +10,46 @@ export default function SalesPage({ onShowHistory, onShowDashboard }) {
   const produtos = useLiveQuery(() => db.produtos.toArray());
   const [selectedProduct, setSelectedProduct] = useState(null);
   const [quantidade, setQuantidade] = useState(1);
-  const [lastSale, setLastSale] = useState(null);
-  const [filterCategory, setFilterCategory] = useState('Todas');
-
-  const categories = ['Todas', ...new Set(produtos?.map(p => p.categoria || 'Geral'))];
+  const [cliente, setCliente] = useState('');
+  
+  const categories = ['Todas', 'Baixo Estoque', ...new Set(produtos?.map(p => p.categoria || 'Geral'))];
 
   const handleProductClick = (produto) => {
     setSelectedProduct(produto);
     setQuantidade(1);
+    setCliente('');
     setLastSale(null);
   };
 
   const handlePayment = async (forma) => {
+    if (forma === 'fiado' && !cliente) {
+      alert('Para marcar como Fiado, digite o nome do cliente!');
+      return;
+    }
+
     if (selectedProduct) {
-      await registrarVenda(selectedProduct, forma, quantidade);
+      await registrarVenda(selectedProduct, forma, quantidade, cliente);
       setLastSale({
         nome: selectedProduct.nome,
         total: selectedProduct.preco * quantidade,
         quantidade,
-        forma
+        forma,
+        cliente
       });
       setSelectedProduct(null);
+      setCliente('');
     }
   };
 
   const shareReceipt = () => {
-    const text = `🧾 *CONTA FEIRA* \n--------------------------\n*Produto:* ${lastSale.nome}\n*Qtd:* ${lastSale.quantidade}\n*Total:* R$ ${lastSale.total.toFixed(2)}\n*Pagamento:* ${lastSale.forma.toUpperCase()}\n--------------------------\nObrigado pela preferência! 🍎`;
+    const dataHora = new Date().toLocaleString('pt-BR');
+    let text = `🧾 *CONTA FEIRA* \n--------------------------\n📅 ${dataHora}\n\n*Item:* ${lastSale.nome}\n*Qtd:* ${lastSale.quantidade}\n*💰 Total:* R$ ${lastSale.total.toFixed(2)}\n*Pagamento:* ${lastSale.forma.toUpperCase()}`;
+    
+    if (lastSale.cliente) {
+      text += `\n*Cliente:* ${lastSale.cliente}`;
+    }
+
+    text += `\n--------------------------\nObrigado pela preferência! 🍎`;
     window.open(`https://api.whatsapp.com/send?text=${encodeURIComponent(text)}`);
   };
 
@@ -58,7 +72,9 @@ export default function SalesPage({ onShowHistory, onShowDashboard }) {
 
   const filteredProducts = filterCategory === 'Todas' 
     ? produtos 
-    : produtos?.filter(p => p.categoria === filterCategory);
+    : filterCategory === 'Baixo Estoque'
+      ? produtos?.filter(p => p.estoque !== null && p.estoque <= 5)
+      : produtos?.filter(p => p.categoria === filterCategory);
 
   return (
     <div className="flex flex-col h-screen max-w-md mx-auto bg-[#FAFAFA] pb-safe font-['Outfit']">
@@ -126,7 +142,7 @@ export default function SalesPage({ onShowHistory, onShowDashboard }) {
                   : 'bg-white text-gray-400 border border-gray-100'
               }`}
             >
-              {cat}
+              {cat === 'Baixo Estoque' ? <span className="flex items-center gap-1"><AlertTriangle size={12}/> {cat}</span> : cat}
             </button>
           ))}
         </div>
@@ -139,8 +155,11 @@ export default function SalesPage({ onShowHistory, onShowDashboard }) {
             <div className="flex items-center gap-3">
               <CheckCircle2 className="text-[#4CAF50]" size={28} />
               <div>
-                <p className="text-[10px] font-black text-[#4CAF50] uppercase tracking-widest">Venda Realizada!</p>
+                <p className="text-[10px] font-black text-[#4CAF50] uppercase tracking-widest">
+                  {lastSale.forma === 'fiado' ? 'Marcado na Caderneta!' : 'Venda Realizada!'}
+                </p>
                 <p className="font-bold text-gray-800">{lastSale.nome} ({formatCurrency(lastSale.total)})</p>
+                {lastSale.cliente && <p className="text-[10px] text-gray-400 font-bold uppercase">Cliente: {lastSale.cliente}</p>}
               </div>
             </div>
             <button 
@@ -207,7 +226,7 @@ export default function SalesPage({ onShowHistory, onShowDashboard }) {
               <p className="text-[#FF9800] text-4xl font-black mb-6 drop-shadow-sm">{formatCurrency(selectedProduct.preco * quantidade)}</p>
               
               {/* Quantity Selector */}
-              <div className="flex items-center justify-center gap-6 mb-8 bg-gray-50 p-4 rounded-[2rem]">
+              <div className="flex items-center justify-center gap-6 mb-6 bg-gray-50 p-4 rounded-[2rem]">
                 <button 
                   onClick={() => setQuantidade(Math.max(1, quantidade - 1))}
                   className="w-12 h-12 rounded-full bg-white shadow-md flex items-center justify-center text-3xl font-black text-[#FF9800] active:scale-90 transition-all border border-gray-100"
@@ -226,27 +245,47 @@ export default function SalesPage({ onShowHistory, onShowDashboard }) {
                 </button>
               </div>
 
-              <div className="grid grid-cols-1 gap-3">
+              {/* Client Input for Fiado */}
+              <div className="mb-6">
+                 <input 
+                    type="text" 
+                    placeholder="Nome do Cliente (Opcional)"
+                    className="w-full p-4 bg-gray-50 border-none rounded-2xl text-center font-bold text-gray-900 focus:ring-2 focus:ring-[#4CAF50] outline-none"
+                    value={cliente}
+                    onChange={(e) => setCliente(e.target.value)}
+                 />
+              </div>
+
+              <div className="grid grid-cols-2 gap-3">
                 <button
                   onClick={() => handlePayment('pix')}
-                  className="w-full bg-[#4CAF50] text-white font-black py-4 rounded-2xl flex items-center justify-center gap-3 text-xl shadow-lg shadow-[#4CAF50]/20 active:scale-95 transition-all"
+                  className="col-span-1 bg-[#4CAF50] text-white font-black py-4 rounded-2xl flex flex-col items-center justify-center gap-1 shadow-lg shadow-[#4CAF50]/20 active:scale-95 transition-all"
                 >
-                  <TrendingUp size={24} />
-                  PIX
+                  <TrendingUp size={20} />
+                  <span className="text-xs uppercase tracking-widest">PIX</span>
                 </button>
                 <button
                   onClick={() => handlePayment('dinheiro')}
-                  className="w-full bg-[#FF9800] text-white font-black py-4 rounded-2xl flex items-center justify-center gap-3 text-xl shadow-lg shadow-[#FF9800]/20 active:scale-95 transition-all"
+                  className="col-span-1 bg-[#FF9800] text-white font-black py-4 rounded-2xl flex flex-col items-center justify-center gap-1 shadow-lg shadow-[#FF9800]/20 active:scale-95 transition-all"
                 >
-                  <DollarSign size={24} />
-                  Dinheiro
+                  <DollarSign size={20} />
+                  <span className="text-xs uppercase tracking-widest">Dinheiro</span>
                 </button>
                 <button
                   onClick={() => handlePayment('cartao')}
-                  className="w-full bg-white text-[#4CAF50] font-black py-4 rounded-2xl flex items-center justify-center gap-3 text-xl border-4 border-[#4CAF50] active:scale-95 transition-all shadow-md"
+                  className="col-span-1 bg-blue-500 text-white font-black py-4 rounded-2xl flex flex-col items-center justify-center gap-1 shadow-lg shadow-blue-500/20 active:scale-95 transition-all"
                 >
-                  <CreditCard size={24} />
-                  Cartão
+                  <CreditCard size={20} />
+                  <span className="text-xs uppercase tracking-widest">Cartão</span>
+                </button>
+                <button
+                  onClick={() => handlePayment('fiado')}
+                  className={`col-span-1 font-black py-4 rounded-2xl flex flex-col items-center justify-center gap-1 border-2 border-dashed border-gray-300 active:scale-95 transition-all ${
+                    cliente ? 'bg-gray-800 text-white border-gray-800' : 'text-gray-400 bg-gray-50'
+                  }`}
+                >
+                  <History size={20} />
+                  <span className="text-xs uppercase tracking-widest">Fiado</span>
                 </button>
               </div>
               
