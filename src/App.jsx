@@ -18,33 +18,69 @@ function App() {
   const { isSyncing } = useSync();
   const isOnline = useOnlineStatus();
   const [session, setSession] = useState(null);
-  const [profile, setProfile] = useState(null);
+  const [profile, setProfile] = useState(() => {
+    // Tenta recuperar do cache inicial
+    try {
+      const cached = localStorage.getItem('user_profile');
+      return cached ? JSON.parse(cached) : null;
+    } catch {
+      return null;
+    }
+  });
   const [authLoading, setAuthLoading] = useState(true);
   const [currentPage, setCurrentPage] = useState('sales'); // 'sales', 'history', 'dashboard', 'admin', 'pix'
   const [selectedPlan, setSelectedPlan] = useState(null);
 
   const fetchProfile = async (userId) => {
-    const { data, error } = await supabase
-      .from('profiles')
-      .select('*')
-      .eq('id', userId)
-      .single();
-    
-    if (data) setProfile(data);
-    else if (error && error.code === 'PGRST116') {
-      // Perfil não existe, manter nulo para mostrar PricingPage
-      setProfile(null);
+    try {
+      const { data, error } = await supabase
+        .from('profiles')
+        .select('*')
+        .eq('id', userId)
+        .single();
+      
+      if (data) {
+        setProfile(data);
+        localStorage.setItem('user_profile', JSON.stringify(data));
+      } else if (error && error.code === 'PGRST116') {
+        // Perfil não existe, manter nulo para mostrar PricingPage
+        setProfile(null);
+        localStorage.removeItem('user_profile');
+      }
+    } catch (err) {
+      console.error('Erro ao buscar perfil:', err);
+      // Mantém o perfil em cache se houver erro de conexão
     }
   };
 
   useEffect(() => {
     supabase.auth.getSession().then(({ data: { session } }) => {
       setSession(session);
-      if (session) fetchProfile(session.user.id);
       
-      // Se for admin, já seta a página inicial como admin
-      if (session?.user?.email === 'msjtec12@gmail.com') {
-        setCurrentPage('admin');
+      const cached = localStorage.getItem('user_profile');
+      if (session) {
+        // Se o cache pertencer a outro usuário, limpa
+        if (cached) {
+          try {
+            const p = JSON.parse(cached);
+            if (p.id !== session.user.id) {
+              setProfile(null);
+              localStorage.removeItem('user_profile');
+            }
+          } catch {
+            localStorage.removeItem('user_profile');
+          }
+        }
+        fetchProfile(session.user.id);
+        
+        // Se for admin, já seta a página inicial como admin
+        if (session.user.email === 'msjtec12@gmail.com') {
+          setCurrentPage('admin');
+        }
+      } else {
+        // Sem sessão, limpa perfil
+        setProfile(null);
+        localStorage.removeItem('user_profile');
       }
 
       setAuthLoading(false);
@@ -52,8 +88,12 @@ function App() {
 
     const { data: { subscription } } = supabase.auth.onAuthStateChange((_event, session) => {
       setSession(session);
-      if (session) fetchProfile(session.user.id);
-      else setProfile(null);
+      if (session) {
+         fetchProfile(session.user.id);
+      } else {
+         setProfile(null);
+         localStorage.removeItem('user_profile');
+      }
     });
 
     return () => subscription.unsubscribe();
@@ -100,6 +140,7 @@ function App() {
     
     if (!error) {
       setProfile(data);
+      localStorage.setItem('user_profile', JSON.stringify(data));
       setCurrentPage('sales');
     } else {
       alert('Erro ao processar transação. Tente novamente.');
