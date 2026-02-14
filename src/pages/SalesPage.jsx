@@ -28,7 +28,7 @@ function useStickyState(defaultValue, key) {
   return [value, setValue];
 }
 
-export default function SalesPage({ onShowHistory, onShowDashboard }) {
+export default function SalesPage({ onShowHistory, onShowDashboard, onUpgrade }) {
   const { stats, registrarVenda, cancelarVenda, encerrarDia, vendasHoje } = useVendas();
   
   const [userId, setUserId] = useState(null);
@@ -146,7 +146,7 @@ export default function SalesPage({ onShowHistory, onShowDashboard }) {
   return (
     <div className="flex flex-col h-screen max-w-md mx-auto bg-[#FAFAFA] pb-safe font-['Outfit']">
       {showUpsell && (
-        <UpsellModal trigger={upsellTrigger} onClose={() => setShowUpsell(false)} onUpgrade={() => window.open('https://wa.me/55NUMERO?text=Upgrade', '_blank')} />
+        <UpsellModal trigger={upsellTrigger} onClose={() => setShowUpsell(false)} onUpgrade={onUpgrade} />
       )}
 
       {/* Stats Header */}

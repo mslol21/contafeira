@@ -21,10 +21,17 @@ const plans = [
   }
 ];
 
-export default function PricingPage({ onSelectPlan }) {
+export default function PricingPage({ onSelectPlan, onBack }) {
   return (
     <div className="min-h-screen bg-[#FAFAFA] font-['Outfit'] pb-20">
-      <header className="pt-16 pb-12 text-center px-6">
+      <header className="pt-16 pb-12 text-center px-6 relative">
+        <button 
+          onClick={onBack}
+          className="absolute top-6 left-6 p-3 border border-gray-100 rounded-2xl text-gray-400 hover:text-gray-900 transition-all"
+          title="Voltar"
+        >
+          <ArrowLeft size={24} />
+        </button>
         <h1 className="text-4xl font-black text-gray-900 mb-4 tracking-tight">
           Escolha seu <span className="text-[#4CAF50]">Plano</span>
         </h1>

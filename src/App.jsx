@@ -184,7 +184,7 @@ function App() {
     );
   }
 
-  if (!isConfigured) return <ConfigPage />;
+  if (!isConfigured) return <ConfigPage onUpgrade={() => setCurrentPage('pricing')} />;
 
   return (
     <div className="min-h-screen bg-[#FAFAFA] relative">
@@ -224,9 +224,17 @@ function App() {
         <AdminPage onBack={() => setCurrentPage('sales')} />
       ) : (
         <>
-          {currentPage === 'sales' && <SalesPage onShowHistory={() => setCurrentPage('history')} onShowDashboard={() => setCurrentPage('dashboard')} />}
+          {currentPage === 'sales' && (
+            <SalesPage 
+              onShowHistory={() => setCurrentPage('history')} 
+              onShowDashboard={() => setCurrentPage('dashboard')} 
+              onUpgrade={() => setCurrentPage('pricing')}
+            />
+          )}
           {currentPage === 'history' && <HistoryPage onBack={() => setCurrentPage('sales')} />}
           {currentPage === 'dashboard' && <DashboardPage onBack={() => setCurrentPage('sales')} />}
+          {currentPage === 'pricing' && <PricingPage onSelectPlan={handleSelectPlan} onBack={() => setCurrentPage('sales')} />}
+          {currentPage === 'pix' && <PixPayment plan={selectedPlan} onConfirm={handleConfirmPix} onBack={() => setCurrentPage('pricing')} />}
         </>
       )}
 

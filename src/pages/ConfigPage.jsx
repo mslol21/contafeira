@@ -5,7 +5,7 @@ import { Plus, Trash2, Store, Package, Tag, LogOut, ArrowUpCircle, Save } from '
 import UpsellModal from '../components/UpsellModal';
 import { supabase } from '../lib/supabase';
 
-export default function ConfigPage() {
+export default function ConfigPage({ onUpgrade }) {
   const { config, saveConfig, loading } = useConfig();
   const [nomeBarraca, setNomeBarraca] = useState('');
   const [showUpsell, setShowUpsell] = useState(false);
@@ -76,7 +76,7 @@ export default function ConfigPage() {
   return (
     <div className="max-w-md mx-auto p-6 font-['Outfit'] pb-24">
       {showUpsell && (
-        <UpsellModal trigger="Limite de Produtos" onClose={() => setShowUpsell(false)} onUpgrade={() => window.open('https://wa.me/55NUMERO?text=Upgrade', '_blank')} />
+        <UpsellModal trigger="Limite de Produtos" onClose={() => setShowUpsell(false)} onUpgrade={onUpgrade} />
       )}
 
       <header className="text-center mb-10 pt-4 relative">
