@@ -4,6 +4,7 @@ import ConfigPage from './pages/ConfigPage';
 import SalesPage from './pages/SalesPage';
 import HistoryPage from './pages/HistoryPage';
 import LoginPage from './pages/LoginPage';
+import LandingPage from './pages/LandingPage';
 import PricingPage from './pages/PricingPage';
 import DashboardPage from './pages/DashboardPage';
 import AdminPage from './pages/AdminPage';
@@ -143,6 +144,9 @@ function App() {
     }
   };
 
+  const [showLogin, setShowLogin] = useState(false);
+  const [initialIsSignUp, setInitialIsSignUp] = useState(false);
+
   if (authLoading || configLoading) {
     return (
       <div className="h-screen flex items-center justify-center bg-[#FAFAFA]">
@@ -151,7 +155,17 @@ function App() {
     );
   }
 
-  if (!session) return <LoginPage />;
+  if (!session) {
+    if (showLogin) return <LoginPage onBack={() => setShowLogin(false)} initialIsSignUp={initialIsSignUp} />;
+    return (
+      <LandingPage 
+        onGetStarted={(isSignUp) => {
+          setInitialIsSignUp(isSignUp);
+          setShowLogin(true);
+        }} 
+      />
+    );
+  }
 
   const isAdmin = session.user.email === 'msjtec12@gmail.com' || profile?.role === 'admin';
 

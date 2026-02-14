@@ -1,12 +1,12 @@
 import React, { useState } from 'react';
 import { supabase } from '../lib/supabase';
-import { Mail, Lock, Loader2, ArrowRight, UserPlus, LogIn } from 'lucide-react';
+import { Mail, Lock, Loader2, ArrowRight, UserPlus, LogIn, ChevronLeft } from 'lucide-react';
 
-export default function LoginPage() {
+export default function LoginPage({ onBack, initialIsSignUp = false }) {
   const [loading, setLoading] = useState(false);
   const [email, setEmail] = useState('');
   const [password, setPassword] = useState('');
-  const [isSignUp, setIsSignUp] = useState(false);
+  const [isSignUp, setIsSignUp] = useState(initialIsSignUp);
   const [error, setError] = useState(null);
 
   const handleAuth = async (e) => {
@@ -41,7 +41,15 @@ export default function LoginPage() {
       <div className="flex-1 flex flex-col items-center justify-center p-6">
         <div className="w-full max-w-sm">
           <header className="text-center mb-8">
-            <div className="flex items-center justify-center mb-6">
+            <div className="flex items-center justify-center mb-6 relative">
+              <button 
+                type="button"
+                onClick={onBack}
+                className="absolute left-0 p-2 text-gray-400 hover:text-gray-900 transition-colors"
+                title="Voltar para a página inicial"
+              >
+                <ChevronLeft size={24} />
+              </button>
               <img src="/logo.png" alt="ContaFeira Logo" className="w-48 h-auto drop-shadow-xl" />
             </div>
             
