@@ -1,5 +1,5 @@
 import React from 'react';
-import { Check, Zap, Rocket, ShieldCheck } from 'lucide-react';
+import { Check, Zap, Rocket, ShieldCheck, ArrowLeft } from 'lucide-react';
 
 const plans = [
   {
