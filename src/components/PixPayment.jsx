@@ -30,8 +30,13 @@ export default function PixPayment({ plan, onConfirm, onBack }) {
 
   const handleConfirmPay = () => {
     setLoading(true);
-    // Simular envio de notificação para o admin
+    
+    // Simular envio de notificação para o admin via WhatsApp
+    const message = `✅ *COMPROVANTE DE PAGAMENTO* \n--------------------------\n🚀 *Plano:* ${plan.name}\n💰 *Valor:* R$ ${plan.price}\n📧 *Chave PIX:* ${pixKey}\n\nPor favor, valide meu acesso ao sistema ContaFeira!`;
+    const whatsappUrl = `https://api.whatsapp.com/send?phone=5511995831518&text=${encodeURIComponent(message)}`;
+    
     setTimeout(() => {
+      window.open(whatsappUrl, '_blank');
       onConfirm();
       setLoading(false);
     }, 1500);
