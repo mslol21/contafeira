@@ -45,14 +45,24 @@ export function useConfig() {
       updated_at: now
     });
     
-    await dbInstance.produtos.clear();
+    // For products, we use bulkPut to update existing and add new ones.
+    // To handle deletions, we find what's in DB but not in the new list.
+    const currentDBProdutos = await dbInstance.produtos.toArray();
+    const idsToKeep = produtos.map(p => p.id);
+    const idsToDelete = currentDBProdutos.filter(p => !idsToKeep.includes(p.id)).map(p => p.id);
+    
+    if (idsToDelete.length > 0) {
+      await dbInstance.produtos.bulkDelete(idsToDelete);
+    }
+
     const produtosComUser = produtos.map(p => ({ 
       ...p, 
       user_id: user.id, 
       synced: 0,
       updated_at: now
     }));
-    await dbInstance.produtos.bulkAdd(produtosComUser);
+    
+    await dbInstance.produtos.bulkPut(produtosComUser);
   };
 
   return {

@@ -3,7 +3,7 @@ import { useLiveQuery } from 'dexie-react-hooks';
 import { getDB } from '../db/db';
 import { supabase } from '../lib/supabase';
 import { useVendas } from '../hooks/useVendas';
-import { CreditCard, Banknote, History, LogOut, TrendingUp, DollarSign, PieChart, Share2, CheckCircle2, AlertTriangle, Layers, X, ArrowRight, Trash2, Settings, Package } from 'lucide-react';
+import { CreditCard, Banknote, History, LogOut, TrendingUp, DollarSign, PieChart, Share2, CheckCircle2, AlertTriangle, Layers, X, ArrowRight, Trash2, Settings, Package, Pencil, Plus } from 'lucide-react';
 import UpsellModal from '../components/UpsellModal';
 
 // Hook para persistência de estado local
@@ -34,7 +34,7 @@ function useStickyState(defaultValue, key, userId) {
 }
 
 export default function SalesPage({ onShowHistory, onShowDashboard, onUpgrade, onShowSettings }) {
-  const { stats, registrarVenda, cancelarVenda, encerrarDia, vendasHoje, updateEstoque } = useVendas();
+  const { stats, registrarVenda, cancelarVenda, encerrarDia, vendasHoje, saveProduto, addProduto, deleteProduto } = useVendas();
   
   const [userId, setUserId] = useState(null);
   useEffect(() => {
@@ -60,6 +60,7 @@ export default function SalesPage({ onShowHistory, onShowDashboard, onUpgrade, o
   const [showDailyHistory, setShowDailyHistory] = useState(false);
   const [showUpsell, setShowUpsell] = useState(false);
   const [upsellTrigger, setUpsellTrigger] = useState('Recurso Pro');
+  const [productModal, setProductModal] = useState(null); // { mode: 'add'|'edit', data: {} }
   const [editingProduct, setEditingProduct] = useState(null);
 
   // Auto-hide last sale notification after 5 seconds
@@ -174,10 +175,9 @@ export default function SalesPage({ onShowHistory, onShowDashboard, onUpgrade, o
             <h2 className="text-4xl font-black mt-1 drop-shadow-sm">{formatCurrency(stats.total)}</h2>
           </div>
           <div className="flex gap-2">
-            <button onClick={() => isPro ? onShowDashboard() : setShowUpsell(true)} className="p-3 bg-black/10 rounded-2xl border border-white/20 backdrop-blur-sm"><PieChart size={24} /></button>
-            <button onClick={onShowHistory} className="p-3 bg-black/10 rounded-2xl border border-white/20 backdrop-blur-sm"><History size={24} /></button>
-            <button onClick={onShowSettings} className="p-3 bg-black/10 rounded-2xl border border-white/20 backdrop-blur-sm"><Settings size={24} /></button>
-            <button onClick={handleLogout} className="p-3 bg-red-500/20 rounded-2xl border border-white/10 backdrop-blur-sm text-red-100"><LogOut size={24} /></button>
+            <button onClick={() => isPro ? onShowDashboard() : setShowUpsell(true)} className="p-3 bg-black/10 rounded-2xl border border-white/20 backdrop-blur-sm shadow-inner active:scale-95 transition-all" title="Painel"><PieChart size={24} /></button>
+            <button onClick={onShowHistory} className="p-3 bg-black/10 rounded-2xl border border-white/20 backdrop-blur-sm shadow-inner active:scale-95 transition-all" title="Histórico Anterior"><History size={24} /></button>
+            <button onClick={handleLogout} className="p-3 bg-red-500/20 rounded-2xl border border-white/10 backdrop-blur-sm text-red-100 active:scale-95 transition-all" title="Sair"><LogOut size={24} /></button>
           </div>
         </div>
         
@@ -196,7 +196,8 @@ export default function SalesPage({ onShowHistory, onShowDashboard, onUpgrade, o
             {cat === 'Baixo Estoque' ? <span className="flex items-center gap-1"><AlertTriangle size={12}/> {cat}</span> : cat}
           </button>
         ))}
-        <button onClick={onShowSettings} className="px-4 py-2 rounded-full text-[10px] font-black uppercase tracking-widest transition-all bg-white text-[#4CAF50] border border-[#4CAF50]/20 flex items-center gap-1 shadow-sm hover:bg-[#4CAF50]/5"><Settings size={12} /> Editar/Add</button>
+        <button onClick={() => setProductModal({ mode: 'add', data: { nome: '', preco: '', custo: '', estoque: '', categoria: 'Geral' } })} className="px-4 py-2 rounded-full text-[10px] font-black uppercase tracking-widest transition-all bg-white text-[#4CAF50] border border-[#4CAF50]/20 flex items-center gap-1 shadow-sm hover:bg-[#4CAF50]/5"><Plus size={12} /> Add Item</button>
+        <button onClick={onShowSettings} className="px-4 py-2 rounded-full text-[10px] font-black uppercase tracking-widest transition-all bg-white text-gray-400 border border-gray-100 flex items-center gap-1 shadow-sm hover:bg-gray-50"><Settings size={12} /> Config</button>
         <button onClick={() => setShowDailyHistory(true)} className="px-4 py-2 rounded-full text-[10px] font-black uppercase tracking-widest transition-all bg-white text-gray-400 border border-gray-100 flex items-center gap-1"><History size={12} /> Histórico Hoje ({stats.numVendas})</button>
       </div>
 
@@ -275,21 +276,16 @@ export default function SalesPage({ onShowHistory, onShowDashboard, onUpgrade, o
                 </div>
               </button>
               
-              {filterCategory === 'Baixo Estoque' && (
                 <button 
                   onClick={(e) => {
                     e.stopPropagation();
-                    const novo = prompt(`Editar estoque de ${p.nome}:`, p.estoque);
-                    if (novo !== null && !isNaN(novo)) {
-                      updateEstoque(p.id, novo);
-                    }
+                    setProductModal({ mode: 'edit', data: { ...p } });
                   }}
-                  className="absolute top-4 right-4 p-2 bg-gray-100 rounded-full text-gray-400 hover:text-[#4CAF50] transition-colors"
-                  title="Editar Estoque"
+                  className="absolute top-4 right-4 p-2.5 bg-white rounded-full text-[#4CAF50] shadow-md hover:scale-110 transition-all border border-gray-100/50"
+                  title="Editar Produto"
                 >
-                  <AlertTriangle size={16} />
+                  <Pencil size={18} />
                 </button>
-              )}
             </div>
           ))}
         </div>
@@ -328,6 +324,112 @@ export default function SalesPage({ onShowHistory, onShowDashboard, onUpgrade, o
               </div>
               <button onClick={() => setSelectedProduct(null)} className="mt-6 text-gray-300 font-black uppercase tracking-widest text-[10px]">Cancelar</button>
             </div>
+          </div>
+        </div>
+      )}
+      {/* Quick Add/Edit Modal */}
+      {productModal && (
+        <div className="fixed inset-0 bg-black/70 backdrop-blur-lg z-[200] flex items-end sm:items-center justify-center p-4">
+          <div className="bg-white w-full max-w-sm rounded-[3.5rem] p-8 relative shadow-2xl animate-in slide-in-from-bottom">
+            <h4 className="text-xl font-black text-gray-900 mb-6 flex items-center gap-2">
+              {productModal.mode === 'add' ? <Plus className="text-[#4CAF50]" /> : <Pencil className="text-[#4CAF50]" />}
+              {productModal.mode === 'add' ? 'Novo Produto' : 'Editar Produto'}
+            </h4>
+            
+            <div className="space-y-4">
+              <div>
+                <p className="text-[9px] font-black text-gray-400 uppercase tracking-widest mb-1 ml-2">Nome</p>
+                <input 
+                  type="text" 
+                  className="w-full p-4 bg-gray-50 rounded-2xl font-bold text-gray-900"
+                  value={productModal.data.nome} 
+                  onChange={(e) => setProductModal({ ...productModal, data: { ...productModal.data, nome: e.target.value } })}
+                />
+              </div>
+
+              <div className="grid grid-cols-2 gap-3">
+                <div>
+                  <p className="text-[9px] font-black text-gray-400 uppercase tracking-widest mb-1 ml-2">Preço</p>
+                  <input 
+                    type="number" 
+                    className="w-full p-4 bg-gray-50 rounded-2xl font-bold text-orange-500"
+                    value={productModal.data.preco} 
+                    onChange={(e) => setProductModal({ ...productModal, data: { ...productModal.data, preco: e.target.value } })}
+                  />
+                </div>
+                <div>
+                  <p className="text-[9px] font-black text-gray-400 uppercase tracking-widest mb-1 ml-2">Estoque</p>
+                  <input 
+                    type="number" 
+                    className="w-full p-4 bg-gray-50 rounded-2xl font-bold text-gray-900"
+                    value={productModal.data.estoque} 
+                    onChange={(e) => setProductModal({ ...productModal, data: { ...productModal.data, estoque: e.target.value } })}
+                  />
+                </div>
+              </div>
+
+              <div>
+                <p className="text-[9px] font-black text-gray-400 uppercase tracking-widest mb-1 ml-2">Categoria</p>
+                <select 
+                  className="w-full p-4 bg-gray-50 rounded-2xl font-bold text-gray-900"
+                  value={productModal.data.categoria || productModal.data.category} 
+                  onChange={(e) => setProductModal({ ...productModal, data: { ...productModal.data, categoria: e.target.value, category: e.target.value } })}
+                >
+                  <option value="Geral">Geral</option>
+                  <option value="Comida">Comida</option>
+                  <option value="Bebida">Bebida</option>
+                  <option value="Fruta">Fruta</option>
+                  <option value="Outros">Outros</option>
+                </select>
+              </div>
+            </div>
+
+            <div className="flex gap-3 mt-8">
+              <button 
+                onClick={() => setProductModal(null)}
+                className="flex-1 py-4 bg-gray-100 text-gray-400 rounded-2xl font-black uppercase tracking-widest text-[10px]"
+              >
+                Cancelar
+              </button>
+              <button 
+                onClick={async () => {
+                  if (!productModal.data.nome || !productModal.data.preco) {
+                    alert('Nome e Preço são obrigatórios!');
+                    return;
+                  }
+                  
+                  const formatted = {
+                    ...productModal.data,
+                    preco: parseFloat(productModal.data.preco),
+                    estoque: productModal.data.estoque === '' ? null : parseInt(productModal.data.estoque)
+                  };
+
+                  if (productModal.mode === 'add') {
+                    await addProduto(formatted);
+                  } else {
+                    await saveProduto(formatted);
+                  }
+                  setProductModal(null);
+                }}
+                className="flex-1 py-4 bg-[#4CAF50] text-white rounded-2xl font-black uppercase tracking-widest text-[10px] shadow-lg shadow-[#4CAF50]/20"
+              >
+                Salvar
+              </button>
+            </div>
+
+            {productModal.mode === 'edit' && (
+              <button 
+                onClick={async () => {
+                  if (confirm('Tem certeza que deseja excluir este produto?')) {
+                    await deleteProduto(productModal.data.id);
+                    setProductModal(null);
+                  }
+                }}
+                className="w-full mt-4 text-red-300 font-bold uppercase tracking-widest text-[8px]"
+              >
+                Excluir Produto
+              </button>
+            )}
           </div>
         </div>
       )}

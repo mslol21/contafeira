@@ -128,16 +128,32 @@ export function useVendas() {
     vendasHoje,
     registrarVenda,
     cancelarVenda,
-    encerrarDia,
-    updateEstoque: async (produtoId, novoEstoque) => {
+    saveProduto: async (produto) => {
       if (!userId) return;
       const dbInstance = getDB(userId);
-      await dbInstance.produtos.update(produtoId, { 
-        estoque: parseInt(novoEstoque), 
+      await dbInstance.produtos.put({ 
+        ...produto, 
         updated_at: new Date().toISOString(),
         synced: 0 
       });
     },
+    addProduto: async (produto) => {
+      if (!userId) return;
+      const dbInstance = getDB(userId);
+      await dbInstance.produtos.add({ 
+        ...produto,
+        id: uuidv4(),
+        user_id: userId,
+        updated_at: new Date().toISOString(),
+        synced: 0 
+      });
+    },
+    deleteProduto: async (produtoId) => {
+      if (!userId) return;
+      const dbInstance = getDB(userId);
+      await dbInstance.produtos.delete(produtoId);
+    },
+    encerrarDia,
     stats
   };
 }

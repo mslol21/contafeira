@@ -30,11 +30,11 @@ export default function ConfigPage({ onUpgrade, onBack }) {
   const [hasLoaded, setHasLoaded] = useState(false);
 
   useEffect(() => {
-    if (savedProdutos && !hasLoaded) {
+    if (savedProdutos !== undefined && !hasLoaded) {
       if (savedProdutos.length > 0) {
         setProdutos(savedProdutos);
         setHasLoaded(true);
-      } else if (savedProdutos.length === 0) {
+      } else if (status === 'synced') {
         setProdutos([{ 
           id: uuidv4(), 
           nome: '', 
@@ -46,7 +46,7 @@ export default function ConfigPage({ onUpgrade, onBack }) {
         setHasLoaded(true);
       }
     }
-  }, [savedProdutos, hasLoaded]);
+  }, [savedProdutos, hasLoaded, status]);
 
   const profile = useMemo(() => {
     try {
@@ -69,7 +69,14 @@ export default function ConfigPage({ onUpgrade, onBack }) {
   const removeProduto = (id) => setProdutos(produtos.filter(p => p.id !== id));
 
   const updateProduto = (id, field, value) => {
-    setProdutos(produtos.map(p => p.id === id ? { ...p, [field]: value } : p));
+    setProdutos(produtos.map(p => {
+      if (p.id === id) {
+        const update = { ...p, [field]: value };
+        if (field === 'categoria') update.category = value;
+        return update;
+      }
+      return p;
+    }));
   };
 
   const handleSubmit = async (e) => {
@@ -96,7 +103,14 @@ export default function ConfigPage({ onUpgrade, onBack }) {
      window.location.reload();
   };
 
-  if (loading) return <div className="flex items-center justify-center h-screen font-black text-[#4CAF50] animate-pulse">CARREGANDO...</div>;
+  if (loading || (savedProdutos === undefined && !hasLoaded)) {
+    return (
+      <div className="flex flex-col items-center justify-center h-screen font-black text-[#4CAF50] space-y-4">
+        <RefreshCw size={48} className="animate-spin" />
+        <p className="uppercase tracking-[0.3em] text-xs">Carregando Inventário...</p>
+      </div>
+    );
+  }
 
   return (
     <div className="max-w-md mx-auto p-6 font-['Outfit'] pb-24">
