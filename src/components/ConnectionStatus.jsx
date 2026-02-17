@@ -3,7 +3,7 @@ import { Wifi, WifiOff, RefreshCw, CheckCircle2 } from 'lucide-react';
 import { useSync } from '../hooks/useSync';
 
 export default function ConnectionStatus() {
-  const { status } = useSync();
+  const { status, syncData } = useSync();
 
   const configs = {
     offline: {
@@ -29,7 +29,11 @@ export default function ConnectionStatus() {
   const current = configs[status] || configs.synced;
 
   return (
-    <div className={`fixed top-4 right-4 z-[150] flex items-center gap-2 px-4 py-2 rounded-full shadow-lg border border-white/20 backdrop-blur-md text-white font-black text-[10px] uppercase tracking-[0.15em] transition-all duration-500 ${current.color} ${current.animate}`}>
+    <div 
+      onClick={() => syncData()}
+      className={`fixed top-4 right-4 z-[150] flex items-center gap-2 px-4 py-2 rounded-full shadow-lg border border-white/20 backdrop-blur-md text-white font-black text-[10px] uppercase tracking-[0.15em] transition-all duration-500 cursor-pointer active:scale-95 ${current.color} ${current.animate}`}
+      title="Clique para sincronizar agora"
+    >
       {current.icon}
       <span>{current.text}</span>
     </div>

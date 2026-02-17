@@ -1,15 +1,25 @@
 import React, { useState, useEffect, useMemo } from 'react';
 import { v4 as uuidv4 } from 'uuid';
 import { useConfig } from '../hooks/useConfig';
-import { Plus, Trash2, Store, Package, Tag, LogOut, ArrowUpCircle, Save } from 'lucide-react';
+import { useSync } from '../hooks/useSync';
+import { Plus, Trash2, Store, Package, Tag, LogOut, ArrowUpCircle, Save, ArrowLeft, RefreshCw } from 'lucide-react';
 import UpsellModal from '../components/UpsellModal';
 import { supabase } from '../lib/supabase';
 
-export default function ConfigPage({ onUpgrade }) {
+export default function ConfigPage({ onUpgrade, onBack }) {
   const { config, savedProdutos, saveConfig, loading } = useConfig();
+  const { syncData, status } = useSync();
   const [nomeBarraca, setNomeBarraca] = useState('');
   const [showUpsell, setShowUpsell] = useState(false);
   const [produtos, setProdutos] = useState([]);
+
+  const handleRemoteLoad = async () => {
+    if (confirm('Deseja carregar os dados salvos na nuvem? Isso irá sincronizar seu dispositivo agora.')) {
+      await syncData();
+      alert('Sincronização concluída! Seus produtos foram carregados.');
+      window.location.reload();
+    }
+  };
 
   useEffect(() => {
     if (config) {
@@ -95,6 +105,12 @@ export default function ConfigPage({ onUpgrade }) {
       )}
 
       <header className="text-center mb-10 pt-4 relative">
+        {onBack && (
+          <button onClick={onBack} className="absolute top-4 left-0 p-2 text-gray-400 hover:text-[#4CAF50]"><ArrowLeft size={20}/></button>
+        )}
+        <div className="absolute top-4 right-10 flex gap-2">
+           <button onClick={handleRemoteLoad} className={`p-2 text-blue-400 hover:bg-blue-50 rounded-full ${status === 'syncing' ? 'animate-spin' : ''}`} title="Carregar da Nuvem"><RefreshCw size={20}/></button>
+        </div>
         <button onClick={handleLogout} className="absolute top-4 right-0 p-2 text-red-400 hover:text-red-500"><LogOut size={20}/></button>
         <div className="flex justify-center mb-4 text-white">
            <Store size={48} className="text-[#4CAF50]" />

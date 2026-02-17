@@ -230,9 +230,11 @@ function App() {
             <SalesPage 
               onShowHistory={() => setCurrentPage('history')} 
               onShowDashboard={() => setCurrentPage('dashboard')} 
+              onShowSettings={() => setCurrentPage('config')}
               onUpgrade={() => setCurrentPage('pricing')}
             />
           )}
+          {currentPage === 'config' && <ConfigPage onUpgrade={() => setCurrentPage('pricing')} onBack={() => setCurrentPage('sales')} />}
           {currentPage === 'history' && <HistoryPage onBack={() => setCurrentPage('sales')} />}
           {currentPage === 'dashboard' && <DashboardPage onBack={() => setCurrentPage('sales')} />}
           {currentPage === 'pricing' && <PricingPage onSelectPlan={handleSelectPlan} onBack={() => setCurrentPage('sales')} />}

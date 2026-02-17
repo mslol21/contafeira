@@ -3,7 +3,7 @@ import { useLiveQuery } from 'dexie-react-hooks';
 import { getDB } from '../db/db';
 import { supabase } from '../lib/supabase';
 import { useVendas } from '../hooks/useVendas';
-import { CreditCard, Banknote, History, LogOut, TrendingUp, DollarSign, PieChart, Share2, CheckCircle2, AlertTriangle, Layers, X, ArrowRight, Trash2 } from 'lucide-react';
+import { CreditCard, Banknote, History, LogOut, TrendingUp, DollarSign, PieChart, Share2, CheckCircle2, AlertTriangle, Layers, X, ArrowRight, Trash2, Settings, Package } from 'lucide-react';
 import UpsellModal from '../components/UpsellModal';
 
 // Hook para persistência de estado local
@@ -33,7 +33,7 @@ function useStickyState(defaultValue, key, userId) {
   return [value, setValue];
 }
 
-export default function SalesPage({ onShowHistory, onShowDashboard, onUpgrade }) {
+export default function SalesPage({ onShowHistory, onShowDashboard, onUpgrade, onShowSettings }) {
   const { stats, registrarVenda, cancelarVenda, encerrarDia, vendasHoje, updateEstoque } = useVendas();
   
   const [userId, setUserId] = useState(null);
@@ -176,6 +176,7 @@ export default function SalesPage({ onShowHistory, onShowDashboard, onUpgrade })
           <div className="flex gap-2">
             <button onClick={() => isPro ? onShowDashboard() : setShowUpsell(true)} className="p-3 bg-black/10 rounded-2xl border border-white/20 backdrop-blur-sm"><PieChart size={24} /></button>
             <button onClick={onShowHistory} className="p-3 bg-black/10 rounded-2xl border border-white/20 backdrop-blur-sm"><History size={24} /></button>
+            <button onClick={onShowSettings} className="p-3 bg-black/10 rounded-2xl border border-white/20 backdrop-blur-sm"><Settings size={24} /></button>
             <button onClick={handleLogout} className="p-3 bg-red-500/20 rounded-2xl border border-white/10 backdrop-blur-sm text-red-100"><LogOut size={24} /></button>
           </div>
         </div>
@@ -195,6 +196,7 @@ export default function SalesPage({ onShowHistory, onShowDashboard, onUpgrade })
             {cat === 'Baixo Estoque' ? <span className="flex items-center gap-1"><AlertTriangle size={12}/> {cat}</span> : cat}
           </button>
         ))}
+        <button onClick={onShowSettings} className="px-4 py-2 rounded-full text-[10px] font-black uppercase tracking-widest transition-all bg-white text-[#4CAF50] border border-[#4CAF50]/20 flex items-center gap-1 shadow-sm hover:bg-[#4CAF50]/5"><Settings size={12} /> Editar/Add</button>
         <button onClick={() => setShowDailyHistory(true)} className="px-4 py-2 rounded-full text-[10px] font-black uppercase tracking-widest transition-all bg-white text-gray-400 border border-gray-100 flex items-center gap-1"><History size={12} /> Histórico Hoje ({stats.numVendas})</button>
       </div>
 
@@ -248,7 +250,13 @@ export default function SalesPage({ onShowHistory, onShowDashboard, onUpgrade })
         )}
 
         <div className="grid grid-cols-1 gap-4 pb-8">
-          {filteredProducts.map((p) => (
+          {filteredProducts.length === 0 ? (
+            <div className="text-center py-20 bg-white rounded-[2.5rem] border-2 border-dashed border-gray-100 p-8">
+              <Package size={48} className="mx-auto text-gray-200 mb-4" />
+              <p className="font-black text-gray-400 uppercase tracking-widest text-xs">Nenhum produto aqui</p>
+              <button onClick={onShowSettings} className="mt-4 px-6 py-3 bg-[#4CAF50] text-white rounded-2xl font-black text-[10px] uppercase tracking-widest shadow-lg shadow-[#4CAF50]/20">Cadastrar Produtos</button>
+            </div>
+          ) : filteredProducts.map((p) => (
             <div key={p.id} className="relative group">
               <button 
                 onClick={() => handleProductClick(p)} 
