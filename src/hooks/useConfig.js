@@ -20,6 +20,11 @@ export function useConfig() {
     [userId]
   );
   
+  const savedProdutos = useLiveQuery(
+    () => userId ? userDB.produtos.toArray() : [],
+    [userId]
+  );
+  
   const isConfigured = config?.length > 0;
   
   const saveConfig = async (nomeBarraca, produtos) => {
@@ -52,6 +57,7 @@ export function useConfig() {
 
   return {
     config: config?.[0],
+    savedProdutos,
     isConfigured,
     saveConfig,
     loading: config === undefined || (userId === null && !config)

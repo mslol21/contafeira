@@ -6,23 +6,37 @@ import UpsellModal from '../components/UpsellModal';
 import { supabase } from '../lib/supabase';
 
 export default function ConfigPage({ onUpgrade }) {
-  const { config, saveConfig, loading } = useConfig();
+  const { config, savedProdutos, saveConfig, loading } = useConfig();
   const [nomeBarraca, setNomeBarraca] = useState('');
   const [showUpsell, setShowUpsell] = useState(false);
-  const [produtos, setProdutos] = useState([{ 
-    id: uuidv4(), 
-    nome: '', 
-    preco: '', 
-    custo: '', 
-    estoque: '', 
-    categoria: 'Geral' 
-  }]);
+  const [produtos, setProdutos] = useState([]);
 
   useEffect(() => {
     if (config) {
       setNomeBarraca(config.nomeBarraca || '');
     }
   }, [config]);
+
+  const [hasLoaded, setHasLoaded] = useState(false);
+
+  useEffect(() => {
+    if (savedProdutos && !hasLoaded) {
+      if (savedProdutos.length > 0) {
+        setProdutos(savedProdutos);
+        setHasLoaded(true);
+      } else if (savedProdutos.length === 0) {
+        setProdutos([{ 
+          id: uuidv4(), 
+          nome: '', 
+          preco: '', 
+          custo: '', 
+          estoque: '', 
+          categoria: 'Geral' 
+        }]);
+        setHasLoaded(true);
+      }
+    }
+  }, [savedProdutos, hasLoaded]);
 
   const profile = useMemo(() => {
     try {
@@ -68,6 +82,7 @@ export default function ConfigPage({ onUpgrade }) {
 
   const handleLogout = async () => {
      await supabase.auth.signOut();
+     localStorage.clear();
      window.location.reload();
   };
 

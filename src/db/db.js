@@ -9,7 +9,8 @@ const dbInstances = new Map();
  */
 export const getDB = (userId) => {
   if (!userId) {
-    return new Dexie('ContaFeiraDB_Guest');
+    // Retorna uma instância temporária que não persiste para evitar vazamento entre sessões anônimas
+    return new Dexie(`ContaFeira_Temp_${Math.random().toString(36).substring(7)}`);
   }
 
   const dbName = `ContaFeiraDB_${userId}`;
@@ -20,7 +21,6 @@ export const getDB = (userId) => {
 
   const db = new Dexie(dbName);
   
-  // Versão 8: Adicionado resumo_id para permitir arquivamento sem deleção local
   db.version(8).stores({
     produtos: 'id, nome, preco, custo, estoque, categoria, synced, user_id, updated_at',
     vendas: 'id, nomeProduto, valor, quantidade, formaPagamento, data, hora, cliente, synced, user_id, updated_at, resumo_id',
@@ -33,14 +33,3 @@ export const getDB = (userId) => {
   dbInstances.set(dbName, db);
   return db;
 };
-
-// Legacy Export (Manter apenas para compatibilidade durante migração total)
-export const db = new Dexie('ContaFeiraDB');
-db.version(6).stores({
-  produtos: 'id, nome, preco, custo, estoque, categoria, synced, user_id',
-  vendas: 'id, nomeProduto, valor, quantidade, formaPagamento, data, hora, cliente, synced, user_id',
-  resumos: 'id, data, total, totalPix, totalDinheiro, totalCartao, quantidadeVendas, totalCustos, synced, user_id',
-  despesas: 'id, descricao, valor, categoria, data, synced, user_id',
-  configuracao: 'id, nomeBarraca, synced, user_id',
-  profiles: 'id, plan, subscription_status'
-});

@@ -129,6 +129,15 @@ export function useVendas() {
     registrarVenda,
     cancelarVenda,
     encerrarDia,
+    updateEstoque: async (produtoId, novoEstoque) => {
+      if (!userId) return;
+      const dbInstance = getDB(userId);
+      await dbInstance.produtos.update(produtoId, { 
+        estoque: parseInt(novoEstoque), 
+        updated_at: new Date().toISOString(),
+        synced: 0 
+      });
+    },
     stats
   };
 }

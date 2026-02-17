@@ -7,10 +7,13 @@ import { CreditCard, Banknote, History, LogOut, TrendingUp, DollarSign, PieChart
 import UpsellModal from '../components/UpsellModal';
 
 // Hook para persistência de estado local
-function useStickyState(defaultValue, key) {
+// Hook para persistência de estado local isolado por usuário
+function useStickyState(defaultValue, key, userId) {
   const [value, setValue] = useState(() => {
+    if (!userId) return defaultValue;
     try {
-      const stickyValue = window.localStorage.getItem(key);
+      const stickyKey = `${userId}_${key}`;
+      const stickyValue = window.localStorage.getItem(stickyKey);
       return stickyValue !== null ? JSON.parse(stickyValue) : defaultValue;
     } catch {
       return defaultValue;
@@ -18,18 +21,20 @@ function useStickyState(defaultValue, key) {
   });
 
   useEffect(() => {
+    if (!userId) return;
     try {
-      window.localStorage.setItem(key, JSON.stringify(value));
+      const stickyKey = `${userId}_${key}`;
+      window.localStorage.setItem(stickyKey, JSON.stringify(value));
     } catch (e) {
       console.error('Erro ao salvar no localStorage:', e);
     }
-  }, [key, value]);
+  }, [key, value, userId]);
 
   return [value, setValue];
 }
 
 export default function SalesPage({ onShowHistory, onShowDashboard, onUpgrade }) {
-  const { stats, registrarVenda, cancelarVenda, encerrarDia, vendasHoje } = useVendas();
+  const { stats, registrarVenda, cancelarVenda, encerrarDia, vendasHoje, updateEstoque } = useVendas();
   
   const [userId, setUserId] = useState(null);
   useEffect(() => {
@@ -45,16 +50,27 @@ export default function SalesPage({ onShowHistory, onShowDashboard, onUpgrade })
     [userId]
   );
 
-  // Estados persistentes
-  const [selectedProduct, setSelectedProduct] = useStickyState(null, 'sales_selectedProduct_v2');
-  const [quantidade, setQuantidade] = useStickyState(1, 'sales_quantidade_v2');
-  const [cliente, setCliente] = useStickyState('', 'sales_cliente_v2');
-  const [clienteTelefone, setClienteTelefone] = useStickyState('', 'sales_clienteTelefone_v2');
-  const [filterCategory, setFilterCategory] = useStickyState('Todas', 'sales_filterCategory_v2');
-  const [lastSale, setLastSale] = useStickyState(null, 'sales_lastSale_v2');
+  // Estados persistentes isolados por usuário
+  const [selectedProduct, setSelectedProduct] = useStickyState(null, 'selectedProduct_v3', userId);
+  const [quantidade, setQuantidade] = useStickyState(1, 'quantidade_v3', userId);
+  const [cliente, setCliente] = useStickyState('', 'cliente_v3', userId);
+  const [clienteTelefone, setClienteTelefone] = useStickyState('', 'clienteTelefone_v3', userId);
+  const [filterCategory, setFilterCategory] = useStickyState('Todas', 'filterCategory_v3', userId);
+  const [lastSale, setLastSale] = useStickyState(null, 'lastSale_v3', userId);
   const [showDailyHistory, setShowDailyHistory] = useState(false);
   const [showUpsell, setShowUpsell] = useState(false);
   const [upsellTrigger, setUpsellTrigger] = useState('Recurso Pro');
+  const [editingProduct, setEditingProduct] = useState(null);
+
+  // Auto-hide last sale notification after 5 seconds
+  useEffect(() => {
+    if (lastSale) {
+      const timer = setTimeout(() => {
+        setLastSale(null);
+      }, 5000);
+      return () => clearTimeout(timer);
+    }
+  }, [lastSale, setLastSale]);
 
   const profile = useMemo(() => {
     try {
@@ -128,6 +144,7 @@ export default function SalesPage({ onShowHistory, onShowDashboard, onUpgrade })
   const handleLogout = async () => {
     if (confirm('Deseja sair da sua conta?')) {
       await supabase.auth.signOut();
+      localStorage.clear(); // Limpa TUDO para garantir que nada de outro usuário vaze
       window.location.reload();
     }
   };
@@ -232,16 +249,40 @@ export default function SalesPage({ onShowHistory, onShowDashboard, onUpgrade })
 
         <div className="grid grid-cols-1 gap-4 pb-8">
           {filteredProducts.map((p) => (
-            <button key={p.id} onClick={() => handleProductClick(p)} className="group flex flex-col justify-center bg-white p-6 rounded-[2.5rem] shadow-sm border border-gray-100 active:scale-[0.96] transition-all hover:border-[#4CAF50]/40 hover:shadow-lg min-h-[100px] relative overflow-hidden text-left">
-              <div className="absolute top-0 left-0 w-2 h-full bg-[#4CAF50] opacity-0 group-hover:opacity-100 transition-opacity"></div>
-              <div className="flex justify-between items-start mb-1">
-                <span className="text-xs font-black text-gray-400 uppercase tracking-widest">{p.nome}</span>
-                {isPro && p.estoque !== null && (
-                  <span className={`text-[9px] font-black uppercase tracking-widest ${p.estoque <= 5 ? 'text-red-500 animate-pulse' : 'text-gray-300'}`}>Estoque: {p.estoque}</span>
-                )}
-              </div>
-              <div className="flex justify-between items-end"><span className="text-3xl font-black text-[#FF9800]">{formatCurrency(p.preco)}</span><span className="text-[10px] font-black text-gray-300 uppercase tracking-widest bg-gray-50 px-2 py-1 rounded-md">{p.category || p.categoria || 'Geral'}</span></div>
-            </button>
+            <div key={p.id} className="relative group">
+              <button 
+                onClick={() => handleProductClick(p)} 
+                className="w-full flex flex-col justify-center bg-white p-6 rounded-[2.5rem] shadow-sm border border-gray-100 active:scale-[0.96] transition-all hover:border-[#4CAF50]/40 hover:shadow-lg min-h-[100px] relative overflow-hidden text-left"
+              >
+                <div className="absolute top-0 left-0 w-2 h-full bg-[#4CAF50] opacity-0 group-hover:opacity-100 transition-opacity"></div>
+                <div className="flex justify-between items-start mb-1">
+                  <span className="text-xs font-black text-gray-400 uppercase tracking-widest">{p.nome}</span>
+                  {isPro && p.estoque !== null && (
+                    <span className={`text-[9px] font-black uppercase tracking-widest ${p.estoque <= 5 ? 'text-red-500 animate-pulse' : 'text-gray-300'}`}>Estoque: {p.estoque}</span>
+                  )}
+                </div>
+                <div className="flex justify-between items-end">
+                  <span className="text-3xl font-black text-[#FF9800]">{formatCurrency(p.preco)}</span>
+                  <span className="text-[10px] font-black text-gray-300 uppercase tracking-widest bg-gray-50 px-2 py-1 rounded-md">{p.category || p.categoria || 'Geral'}</span>
+                </div>
+              </button>
+              
+              {filterCategory === 'Baixo Estoque' && (
+                <button 
+                  onClick={(e) => {
+                    e.stopPropagation();
+                    const novo = prompt(`Editar estoque de ${p.nome}:`, p.estoque);
+                    if (novo !== null && !isNaN(novo)) {
+                      updateEstoque(p.id, novo);
+                    }
+                  }}
+                  className="absolute top-4 right-4 p-2 bg-gray-100 rounded-full text-gray-400 hover:text-[#4CAF50] transition-colors"
+                  title="Editar Estoque"
+                >
+                  <AlertTriangle size={16} />
+                </button>
+              )}
+            </div>
           ))}
         </div>
       </div>

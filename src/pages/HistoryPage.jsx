@@ -1,6 +1,7 @@
 import React from 'react';
 import { useHistorico } from '../hooks/useHistorico';
-import { ArrowLeft, Calendar, TrendingUp, DollarSign, ShoppingBag, CreditCard } from 'lucide-react';
+import { ArrowLeft, Calendar, TrendingUp, DollarSign, ShoppingBag, CreditCard, Download } from 'lucide-react';
+import { exportHistoricoToCSV } from '../utils/exportUtils';
 
 export default function HistoryPage({ onBack }) {
   const { historico, loading } = useHistorico();
@@ -16,14 +17,26 @@ export default function HistoryPage({ onBack }) {
 
   return (
     <div className="flex flex-col h-screen max-w-md mx-auto bg-[#FAFAFA] font-['Outfit']">
-      <header className="bg-white p-6 border-b border-gray-100 flex items-center gap-4">
-        <button 
-          onClick={onBack}
-          className="p-3 border border-gray-100 rounded-2xl text-[#4CAF50] hover:bg-[#4CAF50]/5 active:scale-90 transition-all shadow-sm"
-        >
-          <ArrowLeft size={24} />
-        </button>
-        <h1 className="text-2xl font-black text-gray-800 tracking-tight">Registro Anterior</h1>
+      <header className="bg-white p-6 border-b border-gray-100 flex items-center justify-between gap-4">
+        <div className="flex items-center gap-4">
+          <button 
+            onClick={onBack}
+            className="p-3 border border-gray-100 rounded-2xl text-[#4CAF50] hover:bg-[#4CAF50]/5 active:scale-90 transition-all shadow-sm"
+          >
+            <ArrowLeft size={24} />
+          </button>
+          <h1 className="text-2xl font-black text-gray-800 tracking-tight">Registro Anterior</h1>
+        </div>
+        
+        {historico?.length > 0 && (
+          <button 
+            onClick={() => exportHistoricoToCSV(historico)}
+            className="p-3 bg-[#4CAF50] text-white rounded-2xl hover:bg-[#43A047] active:scale-90 transition-all shadow-lg shadow-[#4CAF50]/20 flex items-center gap-2"
+            title="Exportar CSV"
+          >
+            <Download size={20} />
+          </button>
+        )}
       </header>
 
       <div className="flex-1 overflow-y-auto p-6 space-y-6 pb-20">

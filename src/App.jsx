@@ -12,6 +12,7 @@ import PixPayment from './components/PixPayment';
 import ConnectionStatus from './components/ConnectionStatus';
 import { supabase } from './lib/supabase';
 import { useOnlineStatus } from './hooks/useOnlineStatus';
+import StockNotifier from './components/StockNotifier';
 import { Shield, Download, Rocket } from 'lucide-react';
 
 function App() {
@@ -101,7 +102,7 @@ function App() {
       if (session) fetchProfile(session.user.id);
       else {
         setProfile(null);
-        localStorage.removeItem('user_profile');
+        localStorage.clear();
       }
     });
 
@@ -189,6 +190,7 @@ function App() {
   return (
     <div className="min-h-screen bg-[#FAFAFA] relative">
       <ConnectionStatus />
+      <StockNotifier />
 
       {/* Trial Banner */}
       {profile.plan === 'pro_trial' && (
