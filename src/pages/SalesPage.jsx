@@ -349,14 +349,28 @@ export default function SalesPage({ onShowHistory, onShowDashboard, onUpgrade, o
 
               <div className="grid grid-cols-2 gap-3">
                 <div>
-                  <p className="text-[9px] font-black text-gray-400 uppercase tracking-widest mb-1 ml-2">Preço</p>
+                  <p className="text-[9px] font-black text-gray-400 uppercase tracking-widest mb-1 ml-2">Preço Venda</p>
                   <input 
                     type="number" 
+                    step="0.01"
                     className="w-full p-4 bg-gray-50 rounded-2xl font-bold text-orange-500"
                     value={productModal.data.preco} 
                     onChange={(e) => setProductModal({ ...productModal, data: { ...productModal.data, preco: e.target.value } })}
                   />
                 </div>
+                <div>
+                  <p className="text-[9px] font-black text-gray-400 uppercase tracking-widest mb-1 ml-2">Custo</p>
+                  <input 
+                    type="number" 
+                    step="0.01"
+                    className="w-full p-4 bg-gray-50 rounded-2xl font-bold text-red-500"
+                    value={productModal.data.custo} 
+                    onChange={(e) => setProductModal({ ...productModal, data: { ...productModal.data, custo: e.target.value } })}
+                  />
+                </div>
+              </div>
+
+              <div className="grid grid-cols-2 gap-3">
                 <div>
                   <p className="text-[9px] font-black text-gray-400 uppercase tracking-widest mb-1 ml-2">Estoque</p>
                   <input 
@@ -366,21 +380,20 @@ export default function SalesPage({ onShowHistory, onShowDashboard, onUpgrade, o
                     onChange={(e) => setProductModal({ ...productModal, data: { ...productModal.data, estoque: e.target.value } })}
                   />
                 </div>
-              </div>
-
-              <div>
-                <p className="text-[9px] font-black text-gray-400 uppercase tracking-widest mb-1 ml-2">Categoria</p>
-                <select 
-                  className="w-full p-4 bg-gray-50 rounded-2xl font-bold text-gray-900"
-                  value={productModal.data.categoria || productModal.data.category} 
-                  onChange={(e) => setProductModal({ ...productModal, data: { ...productModal.data, categoria: e.target.value, category: e.target.value } })}
-                >
-                  <option value="Geral">Geral</option>
-                  <option value="Comida">Comida</option>
-                  <option value="Bebida">Bebida</option>
-                  <option value="Fruta">Fruta</option>
-                  <option value="Outros">Outros</option>
-                </select>
+                <div>
+                  <p className="text-[9px] font-black text-gray-400 uppercase tracking-widest mb-1 ml-2">Categoria</p>
+                  <select 
+                    className="w-full p-4 bg-gray-50 rounded-2xl font-bold text-gray-900"
+                    value={productModal.data.categoria || productModal.data.category} 
+                    onChange={(e) => setProductModal({ ...productModal, data: { ...productModal.data, categoria: e.target.value, category: e.target.value } })}
+                  >
+                    <option value="Geral">Geral</option>
+                    <option value="Comida">Comida</option>
+                    <option value="Bebida">Bebida</option>
+                    <option value="Fruta">Fruta</option>
+                    <option value="Outros">Outros</option>
+                  </select>
+                </div>
               </div>
             </div>
 
@@ -400,7 +413,8 @@ export default function SalesPage({ onShowHistory, onShowDashboard, onUpgrade, o
                   
                   const formatted = {
                     ...productModal.data,
-                    preco: parseFloat(productModal.data.preco),
+                    preco: parseFloat(productModal.data.preco) || 0,
+                    custo: parseFloat(productModal.data.custo) || 0,
                     estoque: productModal.data.estoque === '' ? null : parseInt(productModal.data.estoque)
                   };
 
